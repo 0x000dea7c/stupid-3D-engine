@@ -102,10 +102,10 @@ int main() {
 
   InitialiseImGui(window, context);
 
-  if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0) {
-    std::cerr << __FUNCTION__ << ": couldn't set relative mouse mode: " << SDL_GetError() << '\n';
-    return EXIT_FAILURE;
-  }
+  // if (SDL_SetRelativeMouseMode(SDL_TRUE) < 0) {
+  //   std::cerr << __FUNCTION__ << ": couldn't set relative mouse mode: " << SDL_GetError() << '\n';
+  //   return EXIT_FAILURE;
+  // }
 
   // TODO: you can probably get rid of 50% of this shit you wrote
   entity_component_system ecs;
