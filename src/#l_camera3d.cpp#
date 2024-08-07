@@ -1,0 +1,65 @@
+#include "l_camera3d.hpp"
+
+// NOTE: mostly extracted from LearnOpenGL tutorial as I followed. There are unnecesary things, but it's alright.
+
+namespace lain {
+
+level_editor_camera3d::level_editor_camera3d(glm::vec3 const& center, glm::vec3 const& up, float const yaw, float const pitch,
+                   input_manager& inputManager)
+    : _center{center}, _targetCenter{center}, _worldUp{up}, _direction{glm::vec3(0.f)}, _inputManager{inputManager},
+      _yaw{yaw}, _pitch{pitch}, _speed{5.f}, _sensitivity{0.01f}, _lerpFactor{0.5f} {
+  UpdateCameraVectors();
+}
+
+void level_editor_camera3d::UpdateCameraVectors() {
+  glm::vec3 front;
+  front.x = std::cos(_yaw) * std::cos(_pitch);
+  front.y = std::sin(_pitch);
+  front.z = std::sin(_yaw) * std::cos(_pitch);
+
+  _front = glm::normalize(front);
+  _right = glm::normalize(glm::cross(front, _worldUp));
+  _up = glm::normalize(glm::cross(_right, _front));
+}
+
+void level_editor_camera3d::ProcessKeyboard(float const deltaTime) {
+  if (_inputManager.KeyHeld(key::w)) {
+    _targetCenter = _center + (_front * _speed * deltaTime);
+  }
+
+  if (_inputManager.KeyHeld(key::s)) {
+    _targetCenter = _center - (_front * _speed * deltaTime);
+  }
+
+  if (_inputManager.KeyHeld(key::a)) {
+    _targetCenter = _center - (_right * _speed * deltaTime);
+  }
+
+  if (_inputManager.KeyHeld(key::d)) {
+    _targetCenter = _center + (_right * _speed * deltaTime);
+  }
+
+  if (_inputManager.KeyHeld(key::q)) {
+    _targetCenter = _center + (_up * _speed * deltaTime);
+  }
+
+  if (_inputManager.KeyHeld(key::e)) {
+    _targetCenter = _center - (_up * _speed * deltaTime);
+  }
+}
+
+void level_editor_camera3d::ProcessMouse(float xOffset, float yOffset) {
+  xOffset *= _sensitivity;
+  yOffset *= _sensitivity;
+
+  _yaw += xOffset;
+  _pitch += yOffset;
+
+  UpdateCameraVectors();
+}
+
+void level_editor_camera3d::ProcessMouseScroll(float const /* yOffset */) {}
+
+void level_editor_camera3d::UpdateCenter() { _center += (_targetCenter - _center) * _lerpFactor; }
+
+}; // namespace lain

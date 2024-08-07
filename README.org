@@ -1,0 +1,105 @@
+* rolling_ball
+
+** Libraries Used
+
+- GLM
+- SDL2
+- ImGUI
+- rapidobj
+- Bullet
+
+** Tasks
+
+*** DONE (15 min) Setup SDL2 and ImGUI
+
+*** DONE (30 min) Define axis and grid parameters.
+- X Define length of each axis line -> (unlimited)
+- X Define grid size (how many units between grid lines)
+- X Choose colours for axes and grid lines
+
+*** DONE (30 min -- +135min overdue) Draw Axes + Grid
+
+- X Implement functions to draw lines representing X and Z
+- X Lines not being seen right now, fix it
+- X Implement basic camera
+- X Fix extra lines bug
+
+*** DONE (30 min -- +30 min overdue) Implement Camera Controls
+
+- X To navigate around the scene, to help me put objects correctly
+- X Smooth camera implementation (wasd)
+- X Fix clunky mouse movement
+
+*** DONE (2h -- +95 min overdue) Add game menu to jump into the editor
+
+- X Game state -> (in game, editor, menu, etc)
+- X Refactor cuz game state is added
+- X Implement cursor (lol wasted tons of time cuz ImGui already had it... but it will be useful for the upcoming UI)
+- X When the game is in editor, then render grid, show cursor, move camera
+- X Show ImGui menu to choose game options (temp)
+- X Options: Play, Editor, Quit
+
+*** TODO (1 week + research) Add model to the world
+
+- X Add left panel -> current position.
+- X Separate renderers at least by responsibility
+- X Add event system
+- X Add level editor modes
+- X Selecting a checkbox to select wall, ground or ball
+- X Create Model and Mesh classes, parse obj file
+- X Once selected, click on the world to place the object
+- X Sometimes you have a texture attached to the model and sometimes the colour only, figure out how to deal with this
+- X Button to clear entities
+- X Create basic ECS
+- X Fix Mouse bug when getting yAngle > 90º or < -90º
+- Fix ImGui mouse bug
+- X Automatically select the object that was just created
+- Option to rotate object X, Y and Z
+- Show imgui options to modify x, y and z placement of selected object
+- Select object pressing left mouse click
+- Press G to grab and object and move it around, then press X, Y or Z to move it on a given axis
+- Add options to say if the object is static or dynamic (whatever Bullet needs)
+- Adding rigid body somewhere???
+- Fix all setters that you've got to templatise them and avoid copying! (item 25)
+- Improve compilation time
+    
+*** TODO (4+ hours + research) Save current scene or level and load it back
+
+- Serialize
+- Deserialize
+- Show ImGui list to show levels to load
+- Adding rigid body somewhere???
+
+*** TODO Define start and end points in the created level
+
+- The end point acts as a trigger, whenever the ball position is inside the bounding box of the end position, then game ended
+- The start point is needed to know where to place the ball initially
+
+*** TODO Add model materials to make it look better
+
+*** TODO Define lighting for level editing (ambient + directional is good I think)
+
+*** TODO (20 min) Change grid line alpha intensity the further it is from the camera
+
+*** TODO Implement game play state
+
+- Load level, ensure ball spawns at start
+- Ensure ball movement works correctly
+- Ensure ball physics with walls work correctly
+- Ensure ball hits end trigger and next level is loaded
+  
+*** TODO Add basic music
+
+- Allow user to select audio device and regulate volume
+
+*** TODO Every time you finish a level
+
+- Show time elapsed
+- Show stars? based on time
+- Show some fancy special effects like confetti or something
+
+*** TODO Add decent game UI
+
+- Get rid of ImGUI debug stuff to add cool buttons
+
+*** TODO Add the constant and variable data uniforms through shaders
