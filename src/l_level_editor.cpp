@@ -159,12 +159,11 @@ static void UpdateInEditMode() {
 
   static int selection{0};
 
-  if (ImGui::RadioButton("Maze", &selection, 0)) {
-    std::clog << "maze yeah bitch!" << std::endl;
-  }
+  ImGui::RadioButton("Maze", &selection, 0);
+  ImGui::RadioButton("Ball", &selection, 1);
 
-  if (ImGui::RadioButton("Ball", &selection, 1)) {
-    std::clog << "ball yeah bitch!" << std::endl;
+  if (ImGui::Button("Add")) {
+    std::clog << "Added entity" << std::endl;
   }
 
   ImGui::NewLine();
