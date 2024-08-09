@@ -5,13 +5,11 @@
 #include "assimp/types.h"
 #include "l_mesh.hpp"
 #include "l_resource_manager.hpp"
+#include <cfloat>
 #include <iostream>
 
 namespace lain {
 
-// ---------------------------------------------------------------------------------------
-//
-// ---------------------------------------------------------------------------------------
 std::filesystem::path model::GetModelPath(model_type const type) const {
   switch (type) {
   case model_type::ball:
@@ -30,7 +28,8 @@ bool model::LoadModel(model_type const type) {
 
   aiScene const* scene{importer.ReadFile(file.c_str(), aiProcess_Triangulate | aiProcess_FlipUVs)};
 
-  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || scene->mRootNode == nullptr) {
+  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE ||
+      scene->mRootNode == nullptr) {
     std::cerr << __FUNCTION__ << ": couldn't load model: " << importer.GetErrorString() << '\n';
     return false;
   }
@@ -43,6 +42,8 @@ bool model::LoadModel(model_type const type) {
 }
 
 void model::ProcessNode(aiNode* node, aiScene const* scene) {
+  _boundingBox._min.x = FLT_MAX;
+
   for (unsigned int i{0}; i < node->mNumMeshes; ++i) {
     _meshes.emplace_back(ProcessMesh(scene->mMeshes[node->mMeshes[i]], scene));
   }
@@ -65,6 +66,15 @@ mesh model::ProcessMesh(aiMesh* aiMesh, aiScene const* scene) {
     position.x = aiMesh->mVertices[i].x;
     position.y = aiMesh->mVertices[i].y;
     position.z = aiMesh->mVertices[i].z;
+
+    // TODO: is this oK?
+    if (_boundingBox._min.x == FLT_MAX) {
+      _boundingBox._min = position;
+      _boundingBox._max = position;
+    } else {
+      _boundingBox._min = glm::min(position, _boundingBox._min);
+      _boundingBox._max = glm::max(position, _boundingBox._max);
+    }
 
     normal.x = aiMesh->mNormals[i].x;
     normal.y = aiMesh->mNormals[i].y;
@@ -93,10 +103,12 @@ mesh model::ProcessMesh(aiMesh* aiMesh, aiScene const* scene) {
   // TODO: add specular as well
   glm::vec3 diffuseColour{aiColour.r, aiColour.g, aiColour.b};
 
-  std::vector<mesh_texture> diffuseMaps{LoadMaterialTextures(material, aiTextureType_DIFFUSE, "textureDiffuse")};
+  std::vector<mesh_texture> diffuseMaps{
+      LoadMaterialTextures(material, aiTextureType_DIFFUSE, "textureDiffuse")};
   textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 
-  std::vector<mesh_texture> specularMaps{LoadMaterialTextures(material, aiTextureType_SPECULAR, "textureSpecular")};
+  std::vector<mesh_texture> specularMaps{
+      LoadMaterialTextures(material, aiTextureType_SPECULAR, "textureSpecular")};
   textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
   return mesh{std::move(vertices), std::move(indices), std::move(textures), diffuseColour};

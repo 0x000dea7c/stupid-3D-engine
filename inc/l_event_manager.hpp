@@ -2,27 +2,15 @@
 
 #include "l_event.hpp"
 #include <functional>
-#include <unordered_map>
-#include <vector>
 
 namespace lain {
 
-class event_manager final {
-public:
-  void Subscribe(event_type const type, std::function<void(event const&)> listener) {
-    _listeners[type].push_back(listener);
-  }
+namespace event_manager {
 
-  void Post(event const event) {
-    auto& listeners = _listeners[event.GetType()];
+void Subscribe(event_type const type, std::function<void(event const&)> listener);
 
-    for (auto const& f : listeners) {
-      f(event);
-    }
-  }
+void Post(event const event);
 
-private:
-  std::unordered_map<event_type, std::vector<std::function<void(event const&)>>> _listeners;
-};
+}; // namespace event_manager
 
 }; // namespace lain

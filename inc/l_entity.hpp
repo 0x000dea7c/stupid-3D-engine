@@ -26,18 +26,25 @@ struct transform_component final {
         _position{position},
         _scale{scale} {}
 
-  transform_component(transform_component&& t)
-      : _rotation{std::move(t._rotation)},
-        _position{std::move(t._position)},
-        _scale{std::move(t._scale)} {}
+  transform_component(transform_component&& other)
+      : _rotation{std::move(other._rotation)},
+        _position{std::move(other._position)},
+        _scale{std::move(other._scale)} {}
 
-  // TODO: can you persist model and not create it every time?
+  transform_component& operator=(transform_component const& other) {
+    if (this != &other) {
+      _rotation = other._rotation;
+      _position = other._position;
+      _scale = other._scale;
+    }
+    return *this;
+  }
+
   glm::mat4 GetModel() const {
     glm::mat4 model{1.f};
     model = glm::translate(model, _position);
     model *= glm::mat4_cast(_rotation);
     model = glm::scale(model, _scale);
-
     return model;
   }
 };
@@ -46,10 +53,16 @@ struct transform_component final {
 class entity_component_system final {
 public:
   // -------------------------------------------------------------------------------
-  // This template + universal reference is to be sure you avoid copy operations
+  // This template + universal reference is to try use move semantics!!!!!!
   // -------------------------------------------------------------------------------
   template <typename T> void AddTransformComponent(entity_id const id, T&& transform) {
-    _transforms.emplace(id, std::forward<T>(transform));
+    auto it = _transforms.find(id);
+
+    if (it != _transforms.end()) {
+      it->second = std::move(transform);
+    } else {
+      _transforms.emplace(id, std::forward<T>(transform));
+    }
   }
 
   transform_component const& GetTransformComponent(entity_id const id) const {

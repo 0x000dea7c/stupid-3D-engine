@@ -3,6 +3,8 @@
 namespace lain {
 
 struct shader final {
+  shader() = default;
+
   shader(unsigned int const id, unsigned int const vao, unsigned int const vbo)
       : _id{id},
         _vao{vao},
@@ -11,7 +13,8 @@ struct shader final {
     _ubo[0] = _ubo[1] = 0;
   }
 
-  shader(unsigned int const id, unsigned int const vao, unsigned int const vbo, unsigned int const ebo)
+  shader(unsigned int const id, unsigned int const vao, unsigned int const vbo,
+         unsigned int const ebo)
       : _id{id},
         _vao{vao},
         _vbo{vbo},

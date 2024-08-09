@@ -1,5 +1,6 @@
 #pragma once
 
+#include "l_math.hpp"
 #include "l_mesh.hpp"
 #include <filesystem>
 #include <string>
@@ -19,6 +20,8 @@ public:
 
   std::vector<mesh> const& GetMeshes() const { return _meshes; }
 
+  aabb GetBoundingBox() const { return _boundingBox; }
+
 private:
   std::filesystem::path GetModelPath(model_type const type) const;
 
@@ -26,10 +29,12 @@ private:
 
   mesh ProcessMesh(aiMesh* aiMesh, aiScene const* scene);
 
-  std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTextureType type, std::string const& typeName);
+  std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTextureType type,
+                                                 std::string const& typeName);
 
   std::vector<mesh> _meshes;
   std::unordered_map<std::string, mesh_texture> _texturesCache;
+  aabb _boundingBox;
   std::string _directory;
 };
 

@@ -2,16 +2,14 @@
 
 namespace lain {
 
-class main_menu_renderer;
+namespace main_menu {
 
-class main_menu final {
-public:
-  main_menu(main_menu_renderer& mainMenuRenderer);
+void ProcessInput();
 
-  void Render();
+void Update();
 
-private:
-  main_menu_renderer& _renderer;
-};
+void Render();
+
+}; // namespace main_menu
 
 }; // namespace lain

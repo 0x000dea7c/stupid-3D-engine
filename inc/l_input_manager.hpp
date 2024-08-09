@@ -6,6 +6,8 @@
 
 namespace lain {
 
+namespace input_manager {
+
 enum class key : std::size_t {
   w = 0,
   a,
@@ -28,47 +30,39 @@ enum class key : std::size_t {
   unknown,
 };
 
-struct input_manager final {
-  input_manager() {
-    for (std::size_t i{0}; i < static_cast<std::size_t>(key::count); ++i) {
-      _currentKeys[i] = false;
-      _previousKeys[i] = false;
-    }
-  }
+enum class mouse_button : std::size_t {
+  left,
 
-  bool KeyPressed(key const k) const {
-    return !_previousKeys[static_cast<unsigned int>(k)] &&
-           _currentKeys[static_cast<std::size_t>(k)];
-  }
-
-  bool KeyHeld(key const k) const {
-    return _previousKeys[static_cast<unsigned int>(k)] && _currentKeys[static_cast<std::size_t>(k)];
-  }
-
-  bool KeyReleased(key const k) const {
-    return _previousKeys[static_cast<unsigned int>(k)] &&
-           !_currentKeys[static_cast<std::size_t>(k)];
-  }
-
-  void BeginFrame() {
-    for (unsigned int i{0}; i < static_cast<unsigned int>(key::count); ++i) {
-      _previousKeys[i] = _currentKeys[i];
-    }
-
-    _cursorIsMoving = false;
-  }
-
-  // update key state
-  void UpdateKey(key const k, bool const pressed) noexcept {
-    _currentKeys[static_cast<std::size_t>(k)] = pressed;
-  }
-
-  glm::vec2 GetCursorCoords() const { return _cursorCoords; }
-
-  bool _currentKeys[static_cast<std::size_t>(key::count)];
-  bool _previousKeys[static_cast<std::size_t>(key::count)];
-  glm::vec2 _cursorCoords;
-  bool _cursorIsMoving;
+  count,
+  unknown
 };
+
+void Initialise();
+
+void BeginFrame();
+
+void UpdateKey(key const k, bool const pressed);
+
+void UpdateMouseButton(mouse_button const button, bool const clicked);
+
+bool IsKeyPressed(key const k);
+
+bool IsKeyHeld(key const k);
+
+bool IsKeyReleased(key const k);
+
+bool IsMouseButtonPressed(mouse_button const button);
+
+bool IsCursorMoving();
+
+void UpdateCursorPosition(glm::vec2 const& pos);
+
+void UpdateCursorPosition2(glm::vec2 const& pos); // KLUDGE
+
+void SetCursorIsMoving();
+
+glm::vec2 GetCursorPosition();
+
+}; // namespace input_manager
 
 }; // namespace lain
