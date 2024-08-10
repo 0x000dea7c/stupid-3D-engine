@@ -3,11 +3,13 @@
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
+#include "l_application.hpp"
 #include "l_camera.hpp"
 #include "l_common.hpp"
 #include "l_debug.hpp"
 #include "l_entity.hpp"
 #include "l_input_manager.hpp"
+#include "l_math.hpp"
 #include "l_platform.hpp"
 #include "l_renderer.hpp"
 #include "l_resource_manager.hpp"
@@ -18,6 +20,8 @@ namespace lain {
 
 namespace level_editor {
 
+using VertexObjectHandle = std::pair<unsigned int, unsigned int>;
+
 enum class level_editor_mode { move, edit };
 
 static float constexpr kGridSquareSize{0.5f};
@@ -25,17 +29,21 @@ static float constexpr kHalfGridExtent{20.f};
 static glm::vec4 constexpr kGreyColour{0.5f, 0.5f, 0.5f, 1.f};
 static glm::vec4 constexpr kRedColour{1.f, 0.0f, 0.0f, 1.f};
 static glm::vec4 constexpr kGreenColour{0.f, 1.0f, 0.0f, 1.f};
+static glm::vec4 constexpr kDebugColour{0.33f, 0.1f, 0.1f, 1.f};
 
 static level_editor_mode _mode;
 static camera3D _camera;
-static unsigned int _gridVAO;
-static unsigned int _axisXVAO;
-static unsigned int _axisZVAO;
+static VertexObjectHandle _grid;
+static VertexObjectHandle _axisX;
+static VertexObjectHandle _axisZ;
+static VertexObjectHandle _ray;
 static glm::vec3 _currentCameraDirection;
 static entity_id _selectedEntity;
 static std::vector<entity_id> _entities;
 static glm::vec3 _imGuiEntityPosition;
 static ecs::entity_component_system* _ecs;
+static glm::vec3 _rayToCursorPos;
+static bool _debugDrawCursorRayInEditMode;
 
 static int GetSquaresToDraw() { return static_cast<int>((2 * kHalfGridExtent) / kGridSquareSize); }
 
@@ -43,6 +51,8 @@ void Initialise(ecs::entity_component_system* ecs) {
   assert(ecs != nullptr);
 
   _ecs = ecs;
+
+  _debugDrawCursorRayInEditMode = false;
 
   _camera._position = glm::vec3(0.f);
   _camera._targetPosition = glm::vec3(0.f);
@@ -81,9 +91,7 @@ void Initialise(ecs::entity_component_system* ecs) {
     vertices.push_back(level_editor::kHalfGridExtent * 2);
   }
 
-  _gridVAO = resource_manager::CreatePrimitiveVAO(vertices);
-
-  assert(_gridVAO != 0 && " couldn't create grid vao");
+  _grid = resource_manager::CreatePrimitiveVAO(vertices, GL_STATIC_DRAW);
 
   // ---------------------------------------------
   // Create vertices for the X-Z axis
@@ -93,24 +101,28 @@ void Initialise(ecs::entity_component_system* ecs) {
       1000.f, 0.01f, 0.f, // X
   };
 
-  _axisXVAO = resource_manager::CreatePrimitiveVAO(vertices);
-
-  assert(_axisXVAO != 0 && " couldn't create axis X vao");
+  _axisX = resource_manager::CreatePrimitiveVAO(vertices, GL_STATIC_DRAW);
 
   vertices = {
       0.f, 0.01f, 0.f,    // origin
       0.f, 0.01f, 1000.f, // Z
   };
 
-  _axisZVAO = resource_manager::CreatePrimitiveVAO(vertices);
+  _axisZ = resource_manager::CreatePrimitiveVAO(vertices, GL_STATIC_DRAW);
 
-  assert(_axisZVAO != 0 && " couldn't create axis Z vao");
+  vertices = {0, 0, 0, 0, 0, 0};
+
+  _ray = resource_manager::CreatePrimitiveVAO(vertices, GL_DYNAMIC_DRAW);
 }
 
 static void ProcessInputInEditMode() {
   if (input_manager::IsCursorMoving()) {
     // TODO: do raycasting starting from camera position towards where the mouse is pointing.
     // Find closest entity (if there's any) and select it.
+  }
+
+  if (input_manager::IsKeyPressed(input_manager::key::k)) {
+    _debugDrawCursorRayInEditMode = !_debugDrawCursorRayInEditMode;
   }
 }
 
@@ -153,7 +165,6 @@ static void ProcessInputInMoveMode() {
 
 static void UpdateInMoveMode(float const deltaTime) {
   _camera.SetTargetPosition(deltaTime);
-
   _camera.Update(deltaTime);
 
   ImGui_ImplOpenGL3_NewFrame();
@@ -203,9 +214,13 @@ static void UpdateInEditMode() {
         _selectedEntity,
         transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), glm::vec3(0.f), glm::vec3(1.f)));
 
+    resource_manager::AddEntityModelRelationship(_selectedEntity, type);
+
+    _ecs->AddAABBComponent(_selectedEntity,
+                           resource_manager::GetModelDataFromEntity(_selectedEntity)->_boundingBox);
+
     _entities.push_back(_selectedEntity);
 
-    resource_manager::AddEntityModelRelationship(_selectedEntity, type);
 
     _imGuiEntityPosition.x = _imGuiEntityPosition.y = _imGuiEntityPosition.z = 0.f;
   }
@@ -217,10 +232,54 @@ static void UpdateInEditMode() {
     ImGui::Text("Id: %d", _selectedEntity);
     ImGui::Text("Position");
     ImGui::NewLine();
-    ImGui::SliderFloat("X", &_imGuiEntityPosition.x, -100.f, 100.f, nullptr);
-    ImGui::SliderFloat("Y", &_imGuiEntityPosition.y, -100.f, 100.f, nullptr);
-    ImGui::SliderFloat("Z", &_imGuiEntityPosition.z, -100.f, 100.f, nullptr);
+    ImGui::SliderFloat("X", &_imGuiEntityPosition.x, -10.f, 10.f, nullptr);
+    ImGui::SliderFloat("Y", &_imGuiEntityPosition.y, -10.f, 10.f, nullptr);
+    ImGui::SliderFloat("Z", &_imGuiEntityPosition.z, -10.f, 10.f, nullptr);
     ImGui::End();
+
+    auto const transform =
+        transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), _imGuiEntityPosition, glm::vec3(1.f));
+
+    // Use the modified information to change entities' transform
+    _ecs->AddTransformComponent(_selectedEntity, transform);
+
+    auto& aabb = _ecs->GetAABBComponent(_selectedEntity);
+
+    aabb.Update(transform);
+  }
+
+  // ------------------
+  // Entity picking
+  // ------------------
+  ImGuiIO& io = ImGui::GetIO();
+
+  glm::vec4 cursorPos(io.MousePos.x, io.MousePos.y, 0.f, 0.f);
+
+  cursorPos = ScreenSpaceToNormalisedDeviceCoordinates(cursorPos, application::GetWindowWidth(),
+                                                       application::GetWindowHeight());
+
+  cursorPos = NormalisedDeviceCoordinatesToClipSpace(cursorPos);
+
+  cursorPos = ClipSpaceToViewSpace(cursorPos, renderer::GetCurrentProjectionMatrix());
+
+  cursorPos = ViewSpaceToWorldSpace(cursorPos, _camera.GetViewMatrix());
+
+  _rayToCursorPos = glm::vec3(cursorPos) - _camera._position;
+
+  ray cameraToCursorRay;
+  cameraToCursorRay._direction = glm::normalize(glm::vec3(cursorPos) - _camera._position);
+  cameraToCursorRay._position = _camera._position;
+
+  for (auto const& entity : _entities) {
+    auto transform = _ecs->GetTransformComponent(entity);
+
+    aabb entityaabb;
+    entityaabb._min = transform._position - 1.f;
+    entityaabb._min = transform._position + 1.f;
+
+    if (RayIntersectsAABB(cameraToCursorRay, entityaabb)) {
+      std::clog << "You clicked me!" << std::endl;
+    }
   }
 }
 
@@ -236,16 +295,33 @@ static void RenderInMoveMode() {
 
 static void DrawGrid() {
   static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
-  renderer::DrawLines(id, _gridVAO, 1000, _camera.GetViewMatrix(), kGreyColour);
+  renderer::DrawLines(id, _grid.first, 1000, _camera.GetViewMatrix(), kGreyColour);
 }
 
 static void DrawWorldAxis() {
   static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
-  renderer::DrawLines(id, _axisXVAO, 2, _camera.GetViewMatrix(), kRedColour);
-  renderer::DrawLines(id, _axisZVAO, 2, _camera.GetViewMatrix(), kGreenColour);
+  renderer::DrawLines(id, _axisX.first, 2, _camera.GetViewMatrix(), kRedColour);
+  renderer::DrawLines(id, _axisZ.first, 2, _camera.GetViewMatrix(), kGreenColour);
 }
 
 static void DrawEntities() { renderer::DrawEntities(_entities, _camera); }
+
+static void Debug_DrawRayToCursor() {
+  static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
+
+  float const vertices[] = {0.f,
+                            0.f,
+                            0.f,
+                            _rayToCursorPos.x * 1000.f,
+                            _rayToCursorPos.y * 1000.f,
+                            _rayToCursorPos.z * 1000.f};
+
+  glBindVertexArray(_ray.first);
+  glBindBuffer(GL_ARRAY_BUFFER, _ray.second);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+  renderer::DrawLines(id, _ray.first, 2, _camera.GetViewMatrix(), kDebugColour);
+}
 
 void ProcessInput() {
   if (input_manager::IsKeyPressed(input_manager::key::f1)) {
@@ -294,6 +370,11 @@ void Render() {
   switch (_mode) {
   case level_editor_mode::edit:
     RenderInEditMode();
+
+    if (_debugDrawCursorRayInEditMode) {
+      Debug_DrawRayToCursor();
+    }
+
     break;
   case level_editor_mode::move:
     RenderInMoveMode();
@@ -302,38 +383,6 @@ void Render() {
 }
 
 } // namespace level_editor
-
-// void level_editor::SpawnMazeModel() {
-//   entity_id const id{_resourceManager.SpawnEntityFromModelType(model_type::maze)};
-
-//   if (id == 0) {
-//     std::clog << __FUNCTION__ << ": entity not created, skipping" << std::endl;
-//     return;
-//   }
-
-//   _entities.insert(id);
-
-//   _ecs.AddTransformComponent(
-//       id, transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), glm::vec3(0.f), glm::vec3(1.f)));
-
-//   _selectedEntity = id;
-// }
-
-// void level_editor::SpawnBallModel() {
-//   entity_id const id{_resourceManager.SpawnEntityFromModelType(model_type::ball)};
-
-//   if (id == 0) {
-//     std::clog << __FUNCTION__ << ": entity not created, skipping" << std::endl;
-//     return;
-//   }
-
-//   _entities.insert(id);
-
-//   _ecs.AddTransformComponent(id, transform_component(glm::quat(0.f, 0.f, 0.f, 0.f),
-//                                                      glm::vec3(2.f, 0.f, 0.f), glm::vec3(0.5f)));
-
-//   _selectedEntity = id;
-// }
 
 // void level_editor::ClearModels() {
 //   // TODO: at some point you'd want to remove models as well (from the resource manager),

@@ -33,7 +33,8 @@ void AddEntityModelRelationship(entity_id const id, model_type const type);
 model const* GetModelDataFromEntity(entity_id const id);
 void RemoveEntityModelRelationship(entity_id const id);
 
-unsigned int CreatePrimitiveVAO(std::vector<float> const& vertices);
+std::pair<unsigned int, unsigned int> CreatePrimitiveVAO(std::vector<float> const& vertices,
+                                                         GLenum const usage);
 
 void LoadModel(model_type const type);
 

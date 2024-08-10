@@ -15,6 +15,10 @@ void Shutdown();
 
 void Run();
 
+float GetWindowWidth();
+
+float GetWindowHeight();
+
 }; // namespace application
 
 }; // namespace lain

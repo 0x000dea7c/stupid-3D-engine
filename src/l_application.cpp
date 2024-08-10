@@ -163,6 +163,8 @@ static input_manager::key SDLKeyToEngine(int const key) {
     return input_manager::key::q;
   case SDLK_e:
     return input_manager::key::e;
+  case SDLK_k:
+    return input_manager::key::k;
   case SDLK_F1:
     return input_manager::key::f1;
   case SDLK_F2:
@@ -334,6 +336,10 @@ void Run() {
     SDL_GL_SwapWindow(_window);
   }
 }
+
+float GetWindowWidth() { return static_cast<float>(_width); }
+
+float GetWindowHeight() { return static_cast<float>(_height); }
 
 }; // namespace application
 }; // namespace lain

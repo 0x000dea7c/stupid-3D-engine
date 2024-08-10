@@ -177,6 +177,10 @@ void DrawLines(unsigned int const id, unsigned int const vao, std::size_t const 
   glDrawArrays(GL_LINES, 0, count);
 }
 
+glm::mat4 GetCurrentProjectionMatrix() {
+  return _perspective;
+}
+
 }; // namespace renderer
 
 }; // namespace lain

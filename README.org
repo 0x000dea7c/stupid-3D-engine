@@ -62,10 +62,10 @@
 - X Select object pressing left mouse click (kinda words, needs visual debuggin)
 - X Refactor
 - X Improve compilation time
-- Refactor event and mesh files
-- Reimplement entity moving using sliders
-- Add a visual ray that shows where my mouse is pointing at the moment (to see if grabbing the object works)
-- Implement entity picking using the cursor
+- X Refactor event and mesh files
+- X Reimplement entity moving using sliders
+- X Add a visual ray that shows where my mouse is pointing at the moment (to see if grabbing the object works)
+- Implement entity picking using the cursor --> Draw Cube around entity to know its picking hitbox -> make sure it works
 - When entity is selected, draw yellow border
 - Implement deselection if you click in an area where there's nothing
 - Implement clearing scene

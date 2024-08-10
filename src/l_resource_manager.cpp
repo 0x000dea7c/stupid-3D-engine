@@ -271,7 +271,8 @@ shader const* GetShader(int const id) { return _shaders.at(id).get(); }
 
 texture const* GetTexture(int const id) { return _textures.at(id).get(); }
 
-unsigned int CreatePrimitiveVAO(std::vector<float> const& vertices) {
+std::pair<unsigned int, unsigned int> CreatePrimitiveVAO(std::vector<float> const& vertices,
+                                                         GLenum const usage) {
   unsigned int vao, vbo;
 
   glGenVertexArrays(1, &vao);
@@ -280,12 +281,12 @@ unsigned int CreatePrimitiveVAO(std::vector<float> const& vertices) {
   glBindVertexArray(vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), usage);
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, reinterpret_cast<void*>(0));
 
-  return vao;
+  return std::make_pair<>(vao, vbo);
 }
 
 static std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTextureType type,
