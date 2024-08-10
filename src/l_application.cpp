@@ -12,7 +12,6 @@
 #include "l_resource_manager.hpp"
 #include <chrono>
 #include <iostream>
-#include <sstream>
 
 namespace lain {
 
@@ -49,88 +48,6 @@ static SDL_GLContext _context;
 // -------------------
 // Internal functions
 // -------------------
-static void DebugMessageCallback(GLenum const source, GLenum const type, GLenum const id,
-                                 GLenum const severity, [[maybe_unused]] GLsizei const length,
-                                 GLchar const* message, [[maybe_unused]] void const* params) {
-  // ignoring not-so-useful messages
-  if (id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131222 ||
-      id == 131154 || id == 0) {
-    return;
-  }
-
-  std::stringstream debugMessageStream;
-  debugMessageStream << message << '\n';
-
-  switch (source) {
-  case GL_DEBUG_SOURCE_API:
-    debugMessageStream << "Source: API";
-    break;
-  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-    debugMessageStream << "Source: Window Manager";
-    break;
-  case GL_DEBUG_SOURCE_SHADER_COMPILER:
-    debugMessageStream << "Source: Shader Compiler";
-    break;
-  case GL_DEBUG_SOURCE_THIRD_PARTY:
-    debugMessageStream << "Source: Third Party";
-    break;
-  case GL_DEBUG_SOURCE_APPLICATION:
-    debugMessageStream << "Source: Application";
-    break;
-  case GL_DEBUG_SOURCE_OTHER:
-    debugMessageStream << "Source: Other";
-    break;
-  }
-
-  debugMessageStream << '\n';
-
-  switch (type) {
-  case GL_DEBUG_TYPE_ERROR:
-    debugMessageStream << "Type: Error";
-    break;
-  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-    debugMessageStream << "Type: Deprecated Behaviour";
-    break;
-  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-    debugMessageStream << "Type: Undefined Behaviour";
-    break;
-  case GL_DEBUG_TYPE_PORTABILITY:
-    debugMessageStream << "Type: Portability";
-    break;
-  case GL_DEBUG_TYPE_PERFORMANCE:
-    debugMessageStream << "Type: Performance";
-    break;
-  case GL_DEBUG_TYPE_MARKER:
-    debugMessageStream << "Type: Marker";
-    break;
-  case GL_DEBUG_TYPE_PUSH_GROUP:
-    debugMessageStream << "Type: Push Group";
-    break;
-  case GL_DEBUG_TYPE_POP_GROUP:
-    debugMessageStream << "Type: Pop Group";
-    break;
-  case GL_DEBUG_TYPE_OTHER:
-    debugMessageStream << "Type: Other";
-    break;
-  }
-
-  debugMessageStream << '\n';
-
-  switch (severity) {
-  case GL_DEBUG_SEVERITY_HIGH:
-    debugMessageStream << "Severity: high";
-    break;
-  case GL_DEBUG_SEVERITY_MEDIUM:
-    debugMessageStream << "Severity: medium";
-    break;
-  case GL_DEBUG_SEVERITY_LOW:
-    debugMessageStream << "Severity: low";
-    break;
-  case GL_DEBUG_SEVERITY_NOTIFICATION:
-    debugMessageStream << "Severity: notification";
-    break;
-  }
-}
 
 static float Time() {
   using namespace std::chrono;
@@ -237,18 +154,6 @@ bool Initialise(int const width, int const height, bool const fullScreen) {
   // -------------
   // OpenGL stuff
   // -------------
-  glEnable(GL_DEBUG_OUTPUT);
-  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-
-  glDebugMessageCallback(DebugMessageCallback, nullptr);
-
-  // Check for errors after enabling debug output
-  GLenum error = glGetError();
-  if (error != GL_NO_ERROR) {
-    std::cerr << "Error enabling debug output: " << error << std::endl;
-    return false;
-  }
-
   glEnable(GL_CULL_FACE);
   glEnable(GL_DEPTH_TEST);
 

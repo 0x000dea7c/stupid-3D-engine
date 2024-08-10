@@ -6,7 +6,6 @@
 #include "l_application.hpp"
 #include "l_camera.hpp"
 #include "l_common.hpp"
-#include "l_debug.hpp"
 #include "l_entity.hpp"
 #include "l_input_manager.hpp"
 #include "l_math.hpp"
@@ -221,7 +220,6 @@ static void UpdateInEditMode() {
 
     _entities.push_back(_selectedEntity);
 
-
     _imGuiEntityPosition.x = _imGuiEntityPosition.y = _imGuiEntityPosition.z = 0.f;
   }
 
@@ -278,7 +276,6 @@ static void UpdateInEditMode() {
     entityaabb._min = transform._position + 1.f;
 
     if (RayIntersectsAABB(cameraToCursorRay, entityaabb)) {
-      std::clog << "You clicked me!" << std::endl;
     }
   }
 }
@@ -383,73 +380,5 @@ void Render() {
 }
 
 } // namespace level_editor
-
-// void level_editor::ClearModels() {
-//   // TODO: at some point you'd want to remove models as well (from the resource manager),
-//   however,
-//   // that will only be a problem if you spawn a lot of entities with different model files
-//   for (auto const& id : _entities) {
-//     _resourceManager.RemoveEntityModelRelationship(id);
-//   }
-
-//   _entities.clear();
-
-//   _selectedEntity = 0;
-// }
-
-// void level_editor::ProcessCursorInEditMode() {
-//   // -----------------------------------------------------------------------
-//   // Convert cursor positions from screen space to world space and see if it
-//   // intersects with an entity when you're pressing the left click button
-//   // -----------------------------------------------------------------------
-//   if (_inputManager.MouseButtonIsPressed(mouse_button::left)) {
-//     //
-//     --------------------------------------------------------------------------------------------
-//     // TEMP: Problem is that the bounding box of the model is in local space, so you need to
-//     // convert it
-//     //
-//     // Cast a ray from the camera position that points forward (negative z). If it intersects
-//     with
-//     // any object, pick the closest one to the camera
-//     //
-//     --------------------------------------------------------------------------------------------
-//     glm::vec4 cursorWorldSpace{_inputManager._cursorCoordsScreenSpace.x,
-//                                _inputManager._cursorCoordsScreenSpace.y, 0.f, 0.f};
-
-//     // convert to ndc
-//     cursorWorldSpace.x = ((2.f * cursorWorldSpace.x) / 1920.f) - 1.f;
-//     cursorWorldSpace.y = 1.f - ((2.f * cursorWorldSpace.y) / 1080.f);
-
-//     // homogeneous clip space
-//     cursorWorldSpace.w = 1.f;
-
-//     // camera space
-//     cursorWorldSpace = glm::inverse(_camera.GetViewMatrix()) * cursorWorldSpace;
-//     cursorWorldSpace.z = -1.f;
-//     cursorWorldSpace.w = 0.f;
-
-//     // world space
-//     cursorWorldSpace = glm::inverse(_renderer->_perspective) * cursorWorldSpace;
-
-//     ray ray;
-//     ray._position = _camera.GetCenter();
-//     ray._direction = glm::vec3(cursorWorldSpace) - ray._position;
-//     ray._direction = glm::normalize(ray._direction);
-
-//     for (auto const& entity : _entities) {
-//       auto entityBoundingBox = _resourceManager.GetModelFromEntity(entity)->GetBoundingBox();
-
-//       auto const& transform = _ecs.GetTransformComponent(entity);
-//       auto const& model = transform.GetModel();
-
-//       entityBoundingBox._min = model * glm::vec4(entityBoundingBox._min, 1.f);
-//       entityBoundingBox._max = model * glm::vec4(entityBoundingBox._max, 1.f);
-
-//       if (RayIntersectsAABB(ray, entityBoundingBox)) {
-//         std::clog << "You clicked the entity -> " << entity << std::endl;
-//       }
-//     }
-//   }
-// }
 
 }; // namespace lain
