@@ -2,6 +2,7 @@
 #include "glad/glad.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "l_camera.hpp"
 #include "l_common.hpp"
 #include "l_mesh.hpp"
 #include "l_resource_manager.hpp"
@@ -11,6 +12,8 @@
 namespace lain {
 
 namespace renderer {
+
+static ecs::entity_component_system* _ecs;
 
 // utility class
 struct pair_hash final {
@@ -80,26 +83,33 @@ void SetUniformInt(unsigned int const id, std::string const& uniname, int const 
   glUniform1i(GetUniformLocation(id, uniname), value);
 }
 
-void Initialise(float const width, float const height) {
+void Initialise(float const width, float const height, ecs::entity_component_system* ecs) {
+  assert(ecs != nullptr);
+
+  _ecs = ecs;
+
   _perspective =
       glm::perspective(glm::radians(kFovY), width / height, kNearPlaneDistance, kFarPlaneDistance);
 
   _meshWithTextureShader = resource_manager::GetShader(kLevelEditorModelWithTextureShaderId);
 
   _meshWithoutTextureShader = resource_manager::GetShader(kLevelEditorModelWithoutTextureShaderId);
+
+  UseShader(_meshWithTextureShader->_id);
+  SetUniformMat4(_meshWithTextureShader->_id, "projection", _perspective);
+
+  UseShader(_meshWithoutTextureShader->_id);
+  SetUniformMat4(_meshWithoutTextureShader->_id, "projection", _perspective);
 }
 
-void DrawMeshWithTexture(mesh const& mesh) {
+static void DrawMeshWithTexture(mesh const& mesh) {
   std::size_t diffuseIndex{1}, specularIndex{1};
-  auto const& textures = mesh.GetTextures();
-  auto const texturesSize = textures.size();
-  auto const& indicesSize = mesh.GetIndices().size();
   std::string number;
   std::string name;
 
-  for (std::size_t i{0}; i < texturesSize; ++i) {
+  for (std::size_t i{0}; i < mesh._textures.size(); ++i) {
     glActiveTexture(GL_TEXTURE0 + i);
-    name = textures[i]._type;
+    name = mesh._textures[i]._type;
 
     if (name == "textureDiffuse") {
       number = std::to_string(diffuseIndex++);
@@ -108,20 +118,50 @@ void DrawMeshWithTexture(mesh const& mesh) {
     }
 
     SetUniformInt(_meshWithTextureShader->_id, name + number, i);
-    glBindTexture(GL_TEXTURE_2D, textures[i]._id);
+    glBindTexture(GL_TEXTURE_2D, mesh._textures[i]._id);
   }
 
-  glBindVertexArray(mesh.GetVao());
-  glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, 0);
+  glBindVertexArray(mesh._vao);
+  glDrawElements(GL_TRIANGLES, mesh._indices.size(), GL_UNSIGNED_INT, 0);
 }
 
-void DrawMeshWithNoTexture(mesh const& mesh) {
-  auto const& indicesSize = mesh.GetIndices().size();
+static void DrawMeshWithNoTexture(mesh const& mesh) {
+  SetUniformVec3(_meshWithoutTextureShader->_id, "diffuseColour", mesh._diffuseColour);
 
-  SetUniformVec3(_meshWithoutTextureShader->_id, "diffuseColour", mesh.GetDiffuseColour());
+  glBindVertexArray(mesh._vao);
+  glDrawElements(GL_TRIANGLES, mesh._indices.size(), GL_UNSIGNED_INT, 0);
+}
 
-  glBindVertexArray(mesh.GetVao());
-  glDrawElements(GL_TRIANGLES, indicesSize, GL_UNSIGNED_INT, 0);
+void DrawEntities(std::vector<entity_id> const& entities, camera3D const& camera) {
+  glm::mat4 const viewMatrix{camera.GetViewMatrix()};
+
+  UseShader(_meshWithTextureShader->_id);
+  SetUniformMat4(_meshWithTextureShader->_id, "view", viewMatrix);
+
+  UseShader(_meshWithoutTextureShader->_id);
+  SetUniformMat4(_meshWithoutTextureShader->_id, "view", viewMatrix);
+
+  for (auto const& entity : entities) {
+    glm::mat4 const modelMatrix{_ecs->GetTransformComponent(entity).GetModel()};
+
+    UseShader(_meshWithTextureShader->_id);
+    SetUniformMat4(_meshWithTextureShader->_id, "model", modelMatrix);
+
+    UseShader(_meshWithoutTextureShader->_id);
+    SetUniformMat4(_meshWithoutTextureShader->_id, "model", modelMatrix);
+
+    auto const& meshes = resource_manager::GetModelDataFromEntity(entity)->_meshes;
+
+    for (auto const& mesh : meshes) {
+      if (!mesh._textures.empty()) {
+        UseShader(_meshWithTextureShader->_id);
+        DrawMeshWithTexture(mesh);
+      } else {
+        UseShader(_meshWithoutTextureShader->_id);
+        DrawMeshWithNoTexture(mesh);
+      }
+    }
+  }
 }
 
 void DrawLines(unsigned int const id, unsigned int const vao, std::size_t const count,

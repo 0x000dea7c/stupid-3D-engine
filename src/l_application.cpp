@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
+#include "l_entity.hpp"
 #include "l_game.hpp"
 #include "l_input_manager.hpp"
 #include "l_platform.hpp"
@@ -14,6 +15,8 @@
 #include <sstream>
 
 namespace lain {
+
+static ecs::entity_component_system _ecs;
 
 void ConstrainCursorInWindow() { SDL_SetRelativeMouseMode(SDL_TRUE); }
 
@@ -31,8 +34,7 @@ static int constexpr kDepthBufferSize{24};
 static int constexpr kDoubleBuffer{
     1}; // 1 means true, which means the output will be double buffered
 
-// -----------------------------------------------------------------------------
-// State.
+// ---------------------------------------------------------------------.
 //
 // No one needs to know about this implementation, just use the functions that it offers in its
 // interface
@@ -251,9 +253,9 @@ bool Initialise(int const width, int const height, bool const fullScreen) {
   // --------------------------
   // Game stuff initialisation
   // --------------------------
-  game::Initialise();
+  game::Initialise(&_ecs);
   resource_manager::Initialise();
-  renderer::Initialise(_width, _height);
+  renderer::Initialise(_width, _height, &_ecs);
 
   return true;
 }

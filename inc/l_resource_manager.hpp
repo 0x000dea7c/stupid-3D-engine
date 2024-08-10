@@ -2,13 +2,13 @@
 
 #include "glad/glad.h"
 #include "l_entity.hpp"
+#include "l_model.hpp"
 #include <cassert>
 #include <filesystem>
 #include <vector>
 
 namespace lain {
 
-class model;
 class shader;
 class texture;
 
@@ -28,11 +28,14 @@ shader const* GetShader(int const id);
 
 texture const* GetTexture(int const id);
 
+// TODO: don't know about these, maybe they just don't belong here
+void AddEntityModelRelationship(entity_id const id, model_type const type);
 model const* GetModelDataFromEntity(entity_id const id);
-
 void RemoveEntityModelRelationship(entity_id const id);
 
 unsigned int CreatePrimitiveVAO(std::vector<float> const& vertices);
+
+void LoadModel(model_type const type);
 
 }; // namespace resource_manager
 

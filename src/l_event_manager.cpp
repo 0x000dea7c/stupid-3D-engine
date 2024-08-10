@@ -11,7 +11,7 @@ void Subscribe(event_type const type, std::function<void(event const&)> listener
 }
 
 void Post(event const event) {
-  auto& listeners = _listeners[event.GetType()];
+  auto& listeners = _listeners[event._type];
 
   for (auto const& f : listeners) {
     f(event);

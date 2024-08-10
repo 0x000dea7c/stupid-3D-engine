@@ -2,9 +2,13 @@
 
 namespace lain {
 
+namespace ecs {
+struct entity_component_system;
+};
+
 namespace game {
 
-void Initialise();
+void Initialise(ecs::entity_component_system* ecs);
 
 // -----------------------------------
 // You use in game menu to shut down

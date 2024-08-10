@@ -1,16 +1,19 @@
 #pragma once
 
 #include "glm/ext/matrix_float4x4.hpp"
+#include "l_entity.hpp"
 #include <string>
+#include <vector>
 
 namespace lain {
 
 class shader;
 class mesh;
+class camera3D;
 
 namespace renderer {
 
-void Initialise(float const width, float const height);
+void Initialise(float const width, float const height, ecs::entity_component_system* ecs);
 
 // ------------------------------------------------------------
 // id -> program id, the one you created using glCreateProgram!
@@ -27,9 +30,7 @@ void SetUniformVec4(unsigned int const id, std::string const& uniname, glm::vec4
 
 void SetUniformInt(unsigned int const id, std::string const& uniname, int const value);
 
-void DrawMeshWithTexture(mesh const& mesh);
-
-void DrawMeshWithoutTexture(mesh const& mesh);
+void DrawEntities(std::vector<entity_id> const& entities, camera3D const& camera);
 
 void DrawLines(unsigned int const id, unsigned int const vao, std::size_t const count,
                glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));

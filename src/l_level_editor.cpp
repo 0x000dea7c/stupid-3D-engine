@@ -1,15 +1,17 @@
 #include "l_level_editor.hpp"
+#include "glm/ext/quaternion_float.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
 #include "l_camera.hpp"
 #include "l_common.hpp"
+#include "l_debug.hpp"
+#include "l_entity.hpp"
 #include "l_input_manager.hpp"
 #include "l_platform.hpp"
 #include "l_renderer.hpp"
 #include "l_resource_manager.hpp"
 #include "l_shader.hpp"
-#include <iostream>
 #include <vector>
 
 namespace lain {
@@ -21,16 +23,27 @@ enum class level_editor_mode { move, edit };
 static float constexpr kGridSquareSize{0.5f};
 static float constexpr kHalfGridExtent{20.f};
 static glm::vec4 constexpr kGreyColour{0.5f, 0.5f, 0.5f, 1.f};
+static glm::vec4 constexpr kRedColour{1.f, 0.0f, 0.0f, 1.f};
+static glm::vec4 constexpr kGreenColour{0.f, 1.0f, 0.0f, 1.f};
 
 static level_editor_mode _mode;
 static camera3D _camera;
 static unsigned int _gridVAO;
-static unsigned int _axisVAO;
-static glm::vec3 currentCameraDirection;
+static unsigned int _axisXVAO;
+static unsigned int _axisZVAO;
+static glm::vec3 _currentCameraDirection;
+static entity_id _selectedEntity;
+static std::vector<entity_id> _entities;
+static glm::vec3 _imGuiEntityPosition;
+static ecs::entity_component_system* _ecs;
 
 static int GetSquaresToDraw() { return static_cast<int>((2 * kHalfGridExtent) / kGridSquareSize); }
 
-void Initialise() {
+void Initialise(ecs::entity_component_system* ecs) {
+  assert(ecs != nullptr);
+
+  _ecs = ecs;
+
   _camera._position = glm::vec3(0.f);
   _camera._targetPosition = glm::vec3(0.f);
   _camera._worldUp = glm::vec3(0.f, 1.f, 0.f);
@@ -41,7 +54,8 @@ void Initialise() {
   _camera._pitch = 0.f;
 
   // ---------------------------------------------
-  // Create grid vertices and the corresponding vao
+  // Create grid vertices and the corresponding vao, math here is terribly wrong but it does what
+  // you want fn
   // ---------------------------------------------
   int const squares{level_editor::GetSquaresToDraw()};
 
@@ -65,7 +79,7 @@ void Initialise() {
     vertices.push_back(i * level_editor::kGridSquareSize);
     vertices.push_back(0.f);
     vertices.push_back(level_editor::kHalfGridExtent * 2);
-   }
+  }
 
   _gridVAO = resource_manager::CreatePrimitiveVAO(vertices);
 
@@ -75,15 +89,22 @@ void Initialise() {
   // Create vertices for the X-Z axis
   // ---------------------------------------------
   vertices = {
-      0.f,    0.01f, 0.f,    // origin
-      1000.f, 0.01f, 0.f,    // X
-      0.f,    0.01f, 0.f,    // origin
-      0.f,    0.01f, 1000.f, // Z
+      0.f,    0.01f, 0.f, // origin
+      1000.f, 0.01f, 0.f, // X
   };
 
-  _axisVAO = resource_manager::CreatePrimitiveVAO(vertices);
+  _axisXVAO = resource_manager::CreatePrimitiveVAO(vertices);
 
-  assert(_axisVAO != 0 && " couldn't create axis vao");
+  assert(_axisXVAO != 0 && " couldn't create axis X vao");
+
+  vertices = {
+      0.f, 0.01f, 0.f,    // origin
+      0.f, 0.01f, 1000.f, // Z
+  };
+
+  _axisZVAO = resource_manager::CreatePrimitiveVAO(vertices);
+
+  assert(_axisZVAO != 0 && " couldn't create axis Z vao");
 }
 
 static void ProcessInputInEditMode() {
@@ -97,33 +118,33 @@ static void ProcessInputInMoveMode() {
   // -----------
   // Keyboard
   // -----------
-  currentCameraDirection = glm::vec3(0);
+  _currentCameraDirection = glm::vec3(0);
 
   if (input_manager::IsKeyHeld(input_manager::key::w)) {
-    currentCameraDirection.z = 1;
+    _currentCameraDirection.z = 1;
   }
 
   if (input_manager::IsKeyHeld(input_manager::key::s)) {
-    currentCameraDirection.z = -1;
+    _currentCameraDirection.z = -1;
   }
 
   if (input_manager::IsKeyHeld(input_manager::key::a)) {
-    currentCameraDirection.x = -1;
+    _currentCameraDirection.x = -1;
   }
 
   if (input_manager::IsKeyHeld(input_manager::key::d)) {
-    currentCameraDirection.x = 1;
+    _currentCameraDirection.x = 1;
   }
 
   if (input_manager::IsKeyHeld(input_manager::key::q)) {
-    currentCameraDirection.y = 1;
+    _currentCameraDirection.y = 1;
   }
 
   if (input_manager::IsKeyHeld(input_manager::key::e)) {
-    currentCameraDirection.y = -1;
+    _currentCameraDirection.y = -1;
   }
 
-  _camera.ProcessKeyboard(currentCameraDirection);
+  _camera.ProcessKeyboard(_currentCameraDirection);
 
   if (input_manager::IsCursorMoving()) {
     _camera.ProcessCursor(input_manager::GetCursorPosition());
@@ -162,13 +183,45 @@ static void UpdateInEditMode() {
   ImGui::RadioButton("Maze", &selection, 0);
   ImGui::RadioButton("Ball", &selection, 1);
 
-  if (ImGui::Button("Add")) {
-    std::clog << "Added entity" << std::endl;
-  }
-
   ImGui::NewLine();
 
+  if (ImGui::Button("Add")) {
+    model_type type;
+
+    if (selection == 0) {
+      type = model_type::maze;
+    } else {
+      type = model_type::ball;
+    }
+
+    // TODO: some module or something should do all of this as a unit
+    resource_manager::LoadModel(type);
+
+    _selectedEntity = ecs::GetNewEntityId();
+
+    _ecs->AddTransformComponent(
+        _selectedEntity,
+        transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), glm::vec3(0.f), glm::vec3(1.f)));
+
+    _entities.push_back(_selectedEntity);
+
+    resource_manager::AddEntityModelRelationship(_selectedEntity, type);
+
+    _imGuiEntityPosition.x = _imGuiEntityPosition.y = _imGuiEntityPosition.z = 0.f;
+  }
+
   ImGui::End();
+
+  if (_selectedEntity != 0) {
+    ImGui::Begin("Entity Information", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Text("Id: %d", _selectedEntity);
+    ImGui::Text("Position");
+    ImGui::NewLine();
+    ImGui::SliderFloat("X", &_imGuiEntityPosition.x, -100.f, 100.f, nullptr);
+    ImGui::SliderFloat("Y", &_imGuiEntityPosition.y, -100.f, 100.f, nullptr);
+    ImGui::SliderFloat("Z", &_imGuiEntityPosition.z, -100.f, 100.f, nullptr);
+    ImGui::End();
+  }
 }
 
 static void RenderInEditMode() {
@@ -186,12 +239,15 @@ static void DrawGrid() {
   renderer::DrawLines(id, _gridVAO, 1000, _camera.GetViewMatrix(), kGreyColour);
 }
 
-static void DrawEntities() {}
+static void DrawWorldAxis() {
+  static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
+  renderer::DrawLines(id, _axisXVAO, 2, _camera.GetViewMatrix(), kRedColour);
+  renderer::DrawLines(id, _axisZVAO, 2, _camera.GetViewMatrix(), kGreenColour);
+}
+
+static void DrawEntities() { renderer::DrawEntities(_entities, _camera); }
 
 void ProcessInput() {
-  // --------------------------------------------------------------------------------------
-  // Releasing or constraining the cursor is done to avoid conflicts between ImGui and SDL2
-  // --------------------------------------------------------------------------------------
   if (input_manager::IsKeyPressed(input_manager::key::f1)) {
     _mode = level_editor_mode::edit;
   } else if (input_manager::IsKeyPressed(input_manager::key::f2)) {
@@ -228,6 +284,8 @@ void Update(float const deltaTime) {
 void Render() {
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  DrawWorldAxis();
 
   DrawGrid();
 

@@ -19,15 +19,6 @@
 using namespace lain;
 
 int main() {
-  //
-  // NOTE: the approach of not using classes for the input manager, event manager, resource manager,
-  // etc, is done because you only need a single reference to them.
-  //
-  // When you need more than one, you use classes or structs. The interface is much cleaner this
-  // way as well.
-  //
-  // You can also use singletons, but their interface look awful.
-  //
   if (!application::Initialise(1920.f, 1080.f, false)) {
     application::Shutdown();
     return EXIT_FAILURE;

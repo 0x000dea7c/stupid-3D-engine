@@ -60,13 +60,20 @@
 - X Actually apply modifications. Fix emplace
 - X Fix rotation
 - X Select object pressing left mouse click (kinda words, needs visual debuggin)
-- Refactor
-- Implement full screen mode
+- X Refactor
+- X Improve compilation time
+- Refactor event and mesh files
+- Reimplement entity moving using sliders
+- Add a visual ray that shows where my mouse is pointing at the moment (to see if grabbing the object works)
+- Implement entity picking using the cursor
+- When entity is selected, draw yellow border
+- Implement deselection if you click in an area where there's nothing
+- Implement clearing scene
+- Implement level saving and loading
 - Press G to grab and object and move it around, then press X, Y or Z to move it on a given axis
 - Add options to say if the object is static or dynamic (whatever Bullet needs)
 - Adding rigid body somewhere???
-- Fix all setters that you've got to templatise them and avoid copying! (item 25)
-- Improve compilation time
+- Implement full screen mode
     
 *** TODO (4+ hours + research) Save current scene or level and load it back
 

@@ -14,7 +14,9 @@ enum class game_state { mainMenu, play, levelEditor, options };
 static std::stack<game_state> _state;
 static bool _isShuttingDown;
 
-void Initialise() {
+void Initialise(ecs::entity_component_system* ecs) {
+  assert(ecs != nullptr);
+
   _isShuttingDown = false;
 
   event_manager::Subscribe(event_type::main_menu_click_play,
@@ -30,7 +32,7 @@ void Initialise() {
 
   _state.push(game_state::mainMenu);
 
-  level_editor::Initialise();
+  level_editor::Initialise(ecs);
 }
 
 bool IsShuttingDown() { return _isShuttingDown; }

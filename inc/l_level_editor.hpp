@@ -2,9 +2,13 @@
 
 namespace lain {
 
+namespace ecs {
+struct entity_component_system;
+};
+
 namespace level_editor {
 
-void Initialise();
+void Initialise(ecs::entity_component_system* ecs);
 
 void ProcessInput();
 

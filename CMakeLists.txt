@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(rolling_ball VERSION 0.1)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -24,14 +24,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(sdl2)
 
 FetchContent_Declare(
-  Bullet
-  GIT_REPOSITORY https://github.com/bulletphysics/bullet3.git
-  GIT_TAG        3.25
-)
-
-FetchContent_MakeAvailable(Bullet)
-
-FetchContent_Declare(
   assimp
   GIT_REPOSITORY https://github.com/assimp/assimp.git
   GIT_TAG        v5.4.2
@@ -42,7 +34,7 @@ FetchContent_MakeAvailable(assimp)
 if(MSVC)
     add_compile_options(/W3)
 else()
-    add_compile_options(-Wall -Wextra -pedantic -fno-rtti -fno-exceptions -Wunused-result -msse4.1)
+  add_compile_options(-Wall -Wextra -pedantic -fno-rtti -fno-exceptions -Wunused-result -msse4.1)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -77,7 +69,4 @@ file(GLOB IMGUI_BACKEND_SOURCES "deps/imgui/backends/imgui_impl_sdl2.cpp" "deps/
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm SDL2::SDL2 assimp::assimp glad ${BULLET_LIBRARIES})
-
-# TODO:  shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/_deps/bullet-src/src)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm SDL2::SDL2 assimp::assimp glad)
