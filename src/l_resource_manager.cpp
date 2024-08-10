@@ -441,27 +441,4 @@ void LoadModel(model_type const type) {
 
 }; // namespace resource_manager
 
-//
-// TODO: this goes into the entity manager
-//
-// entity_id resource_manager::SpawnEntityFromModelType(model_type const type) {
-//   entity_id const entityId{GetNewEntityId()};
-
-//   // cache
-//   if (_models.find(type) == _models.end()) {
-//     auto newModel = std::make_unique<model>();
-
-//     if (!newModel->LoadModel(type)) {
-//       std::clog << __FUNCTION__ << ": couldn't load model" << std::endl;
-//       return 0;
-//     }
-
-//     _models[type] = std::move(newModel);
-//   }
-
-//   _entityModelRelationship[entityId] = type;
-
-//   return entityId;
-// }
-
 }; // namespace lain
