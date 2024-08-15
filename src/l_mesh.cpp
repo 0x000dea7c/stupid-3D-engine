@@ -35,10 +35,11 @@ static void SetupMesh(mesh& mesh) {
 }
 
 mesh::mesh(std::vector<vertex_data>&& vertices, std::vector<unsigned int>&& indices,
-           std::vector<mesh_texture>&& textures, glm::vec3 const& diffuseColour)
+           std::vector<mesh_texture>&& textures, glm::vec3 const& diffuseColour, aabb&& boundingBox)
     : _vertices{vertices},
       _indices{indices},
       _textures{textures},
+      _boundingBox{boundingBox},
       _diffuseColour{diffuseColour} {
   SetupMesh(*this);
 }

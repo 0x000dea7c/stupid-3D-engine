@@ -5,8 +5,7 @@
 - GLM
 - SDL2
 - ImGUI
-- rapidobj
-- Bullet
+- stb
 
 ** Tasks
 
@@ -39,7 +38,7 @@
 - X Show ImGui menu to choose game options (temp)
 - X Options: Play, Editor, Quit
 
-*** TODO (1 week + research) Add model to the world
+*** TODO (1 week + research) Add model to the world, entity picking, entity transformations, AABBs
 
 - X Add left panel -> current position.
 - X Separate renderers at least by responsibility
@@ -65,15 +64,21 @@
 - X Refactor event and mesh files
 - X Reimplement entity moving using sliders
 - X Add a visual ray that shows where my mouse is pointing at the moment (to see if grabbing the object works)
-- Implement entity picking using the cursor --> Draw Cube around entity to know its picking hitbox -> make sure it works
-- When entity is selected, draw yellow border
-- Implement deselection if you click in an area where there's nothing
-- Implement clearing scene
-- Implement level saving and loading
-- Press G to grab and object and move it around, then press X, Y or Z to move it on a given axis
-- Add options to say if the object is static or dynamic (whatever Bullet needs)
-- Adding rigid body somewhere???
-- Implement full screen mode
+- X Draw Cube around entity to know its picking hitbox -> make sure it works
+- X BUG: after adding a new entity, it suddenly changes to the previous one when manipulating imgui sliders
+- X BUG: even though AABBs are updated and rendered correctly, entity picking doesn't work. double check math? but it was working..
+- X BUG: Every mesh has to have its own AABB -> the maze object has multiple meshes but only has one aabb.
+- X Create hierarchy or something to move an entity and all of its meshes by clicking on the parent object.
+  - it just works for now idk why
+- Understand math behind ray-aabb check
+- X When entity is selected, draw yellow border
+  - No one's gonna use your shitty engine and you already know how it works so it's pointless
+- X Implement deselection if you click in an area where there's nothing
+- X Implement clearing scene
+- X Implement full screen mode
+- X Change inputs for floats because it's very annoying
+- Code is a fucking mess, fix
+  - Read about ECS and fix your shit
     
 *** TODO (4+ hours + research) Save current scene or level and load it back
 
@@ -89,9 +94,15 @@
 
 *** TODO Add model materials to make it look better
 
+- Create all five levels
+
 *** TODO Define lighting for level editing (ambient + directional is good I think)
 
-*** TODO (20 min) Change grid line alpha intensity the further it is from the camera
+*** TODO Implement basic collision detection
+
+- Use a spatial hash grid for positioning objects around the world and improve speed
+- Use fixed time steps to avoid weird physics glitches caused by variable time steps (let player choose between 60, 120, 144, 240)
+- Implement basic collision detection/resolution between AABBs and Spheres
 
 *** TODO Implement game play state
 
@@ -108,10 +119,12 @@
 
 - Show time elapsed
 - Show stars? based on time
-- Show some fancy special effects like confetti or something
+- Show some fancy special effects like confetti or something, particles!
 
 *** TODO Add decent game UI
 
 - Get rid of ImGUI debug stuff to add cool buttons
 
 *** TODO Add the constant and variable data uniforms through shaders
+
+*** TODO Add initial game video or show screen

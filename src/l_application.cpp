@@ -1,5 +1,6 @@
 #include "l_application.hpp"
 #include "SDL2/SDL.h"
+#include "SDL_video.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -82,6 +83,8 @@ static input_manager::key SDLKeyToEngine(int const key) {
     return input_manager::key::e;
   case SDLK_k:
     return input_manager::key::k;
+  case SDLK_b:
+    return input_manager::key::b;
   case SDLK_F1:
     return input_manager::key::f1;
   case SDLK_F2:
@@ -102,9 +105,10 @@ static input_manager::mouse_button SDLMouseButtonToEngine(int const mouseButton)
   }
 }
 
-bool Initialise(int const width, int const height, bool const fullScreen) {
-  _width = static_cast<int>(width * 1.f);
-  _height = static_cast<int>(height * 1.f);
+bool Initialise(bool const fullScreen) {
+  // _width = static_cast<int>(width * 1.f);
+  // _height = static_cast<int>(height * 1.f);
+
   _isInFullScreen = fullScreen;
 
   // No need to sync C and C++ I/O streams, this might improve performance
@@ -121,6 +125,16 @@ bool Initialise(int const width, int const height, bool const fullScreen) {
     std::cerr << __FUNCTION__ << ": couldn't initialise SDL: " << SDL_GetError() << '\n';
     return false;
   }
+
+  SDL_DisplayMode displayMode;
+
+  if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
+    std::cerr << __FUNCTION__ << ": couldn't get desktop display mode: " << SDL_GetError() << '\n';
+    return false;
+  }
+
+  _width = displayMode.w;
+  _height = displayMode.h;
 
   _window = SDL_CreateWindow(kWindowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _width,
                              _height, _SDLWindowFlags);
@@ -245,6 +259,8 @@ void Run() {
 float GetWindowWidth() { return static_cast<float>(_width); }
 
 float GetWindowHeight() { return static_cast<float>(_height); }
+
+void SetWindowTitle(std::string&& newTitle) { SDL_SetWindowTitle(_window, newTitle.c_str()); }
 
 }; // namespace application
 }; // namespace lain

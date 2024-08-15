@@ -43,4 +43,7 @@ int constexpr kLevelEditorModelWithoutTextureShaderId{
     fnv1a("LevelEditorModelWithoutTextureShader",
           CompileTimeStringLength("LevelEditorModelWithoutTextureShader"))};
 
+int constexpr kBoundingBoxShaderId{
+    fnv1a("BoundingBoxShader", CompileTimeStringLength("BoundingBoxShader"))};
+
 } // namespace lain

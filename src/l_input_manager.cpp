@@ -9,7 +9,6 @@ static bool _previousKeys[static_cast<std::size_t>(key::count)];
 static bool _previousMouseButtons[static_cast<std::size_t>(mouse_button::count)];
 static bool _currentMouseButtons[static_cast<std::size_t>(mouse_button::count)];
 static glm::vec2 _cursorCoords;
-static glm::vec2 _cursorCoordsScreenSpace;
 static bool _cursorIsMoving;
 
 void Initialise() {
@@ -63,8 +62,6 @@ bool MouseButtonIsPressed(mouse_button const button) {
 
 void UpdateCursorPosition(glm::vec2 const& pos) { _cursorCoords = pos; }
 
-void UpdateCursorPosition2(glm::vec2 const& pos) { _cursorCoordsScreenSpace = pos; }
-
 void SetCursorIsMoving() { _cursorIsMoving = true; }
 
 bool IsKeyPressed(key const k) {
@@ -80,6 +77,16 @@ bool IsKeyReleased(key const k) {
 }
 
 bool IsMouseButtonPressed(mouse_button const button) {
+  return _previousMouseButtons[static_cast<std::size_t>(button)] &&
+         !_currentMouseButtons[static_cast<std::size_t>(button)];
+}
+
+bool IsMouseButtonHeld(mouse_button const button) {
+  return _previousMouseButtons[static_cast<std::size_t>(button)] &&
+         _currentMouseButtons[static_cast<std::size_t>(button)];
+}
+
+bool IsMouseButtonReleased(mouse_button const button) {
   return _previousMouseButtons[static_cast<std::size_t>(button)] &&
          !_currentMouseButtons[static_cast<std::size_t>(button)];
 }

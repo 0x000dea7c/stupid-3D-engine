@@ -177,9 +177,35 @@ void DrawLines(unsigned int const id, unsigned int const vao, std::size_t const 
   glDrawArrays(GL_LINES, 0, count);
 }
 
-glm::mat4 GetCurrentProjectionMatrix() {
-  return _perspective;
+void DrawBoundingBox(unsigned int const id, unsigned int const vao, entity_id const entityId,
+                     glm::mat4 const& view, glm::vec4 const& colour) {
+  UseShader(id);
+
+  auto const model = _ecs->GetTransformComponent(entityId).GetModel();
+
+  SetUniformMat4(id, "projection", _perspective);
+  SetUniformMat4(id, "view", view);
+  SetUniformMat4(id, "model", model);
+  SetUniformVec4(id, "colour", colour);
+
+  glBindVertexArray(vao);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
 }
+
+void DrawBoundingBoxWithoutModel(unsigned int const id, unsigned int const vao,
+                                 glm::mat4 const& view, glm::vec4 const& colour) {
+  UseShader(id);
+
+  SetUniformMat4(id, "projection", _perspective);
+  SetUniformMat4(id, "view", view);
+  SetUniformMat4(id, "model", glm::mat4(1.f));
+  SetUniformVec4(id, "colour", colour);
+
+  glBindVertexArray(vao);
+  glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+}
+
+glm::mat4 GetCurrentProjectionMatrix() { return _perspective; }
 
 }; // namespace renderer
 

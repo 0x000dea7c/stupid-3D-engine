@@ -5,7 +5,9 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "l_math.hpp"
+#include <cfloat>
 #include <unordered_map>
+#include <vector>
 
 namespace lain {
 
@@ -27,26 +29,43 @@ struct transform_component final {
 
 // NOTE: don't know if every entity in the game will need an AABB, probably
 // yes but since you don't know it's preferable to have it as a separate one.
+
 struct aabb_component final {
+  aabb_component() = default;
+
+  aabb_component(aabb aabb)
+      : _aabb{aabb},
+        _initial{_aabb} {}
+
   aabb _aabb;
-
-  void Update(transform_component const& transform) {
-    glm::vec4 newmin(_aabb._min, 0.f);
-    glm::vec4 newmax(_aabb._max, 0.f);
-    glm::mat4 matrix{transform.GetModel()};
-
-    newmin = matrix * newmin;
-    newmax = matrix * newmax;
-
-    _aabb._min.x = newmin.x;
-    _aabb._min.y = newmin.y;
-    _aabb._min.z = newmin.z;
-
-    _aabb._max.x = newmax.x;
-    _aabb._max.y = newmax.y;
-    _aabb._max.z = newmax.z;
-  }
+  aabb _initial;
 };
+
+// FIXME: shame shame shame
+inline void ECS_Update(transform_component const& transform, aabb_component& aabb) {
+  glm::mat4 matrix{transform.GetModel()};
+
+  glm::vec3 aabbCorners[] = {{aabb._initial._min.x, aabb._initial._min.y, aabb._initial._min.z},
+                             {aabb._initial._min.x, aabb._initial._min.y, aabb._initial._max.z},
+                             {aabb._initial._min.x, aabb._initial._max.y, aabb._initial._min.z},
+                             {aabb._initial._min.x, aabb._initial._max.y, aabb._initial._max.z},
+                             {aabb._initial._max.x, aabb._initial._min.y, aabb._initial._min.z},
+                             {aabb._initial._max.x, aabb._initial._min.y, aabb._initial._max.z},
+                             {aabb._initial._max.x, aabb._initial._max.y, aabb._initial._min.z},
+                             {aabb._initial._max.x, aabb._initial._max.y, aabb._initial._max.z}};
+
+  glm::vec3 newMin(FLT_MAX);
+  glm::vec3 newMax(-FLT_MAX);
+
+  for (auto const& corner : aabbCorners) {
+    auto transformedCorner = matrix * glm::vec4(corner, 1.f);
+    newMin = glm::min(glm::vec3(transformedCorner), newMin);
+    newMax = glm::max(glm::vec3(transformedCorner), newMax);
+  }
+
+  aabb._aabb._min = newMin;
+  aabb._aabb._max = newMax;
+}
 
 namespace ecs {
 
@@ -71,20 +90,35 @@ struct entity_component_system final {
     return _transforms.at(id);
   }
 
-  aabb_component& GetAABBComponent(entity_id const id) { return _aabbs.at(id); }
+  std::vector<aabb_component>& GetAABBSComponents(entity_id const id) { return _aabbs.at(id); }
 
-  template <typename T> void AddAABBComponent(entity_id const id, T&& arg) {
-    auto it = _aabbs.find(id);
-
-    if (it != _aabbs.end()) {
-      it->second = aabb_component(std::move(arg));
+  // @TODO: fixme asapppppppppppppppppppppppppp
+  void AddAABBComponent(entity_id const id, aabb aabb) {
+    if (_aabbs.find(id) != _aabbs.end()) {
+      _aabbs[id].push_back(aabb);
     } else {
-      _aabbs.emplace(id, aabb_component(std::forward<T>(arg)));
+      _aabbs[id].emplace_back(aabb_component(aabb));
     }
   }
 
+  // @TODO: fixme asapppppppppppppppppppppppppp
+  void AddAABBComponent(entity_id const id, aabb_component aabb) {
+    if (_aabbs.find(id) != _aabbs.end()) {
+      _aabbs[id].push_back(aabb);
+    } else {
+      _aabbs[id].emplace_back(aabb);
+    }
+  }
+
+  void ResetAABBs(entity_id const id) { _aabbs[id].clear(); }
+
+  void Clear() {
+    _transforms.clear();
+    _aabbs.clear();
+  }
+
   std::unordered_map<entity_id, transform_component> _transforms;
-  std::unordered_map<entity_id, aabb_component> _aabbs;
+  std::unordered_map<entity_id, std::vector<aabb_component>> _aabbs;
 };
 
 }; // namespace ecs

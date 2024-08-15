@@ -4,7 +4,9 @@
 using namespace lain;
 
 int main() {
-  if (!application::Initialise(1920.f, 1080.f, false)) {
+  bool const fullscreen{true};
+
+  if (!application::Initialise(fullscreen)) {
     application::Shutdown();
     return EXIT_FAILURE;
   }

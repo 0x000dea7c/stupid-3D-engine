@@ -22,7 +22,6 @@ struct aabb final {
 
 bool RayIntersectsAABB(ray const& ray, aabb const& aabb);
 
-// NOTE: these routines are only for mouse purposes atm
 glm::vec4 ScreenSpaceToNormalisedDeviceCoordinates(glm::vec4 const& pos, float const width,
                                                    float const height);
 

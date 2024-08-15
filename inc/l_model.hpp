@@ -1,6 +1,5 @@
 #pragma once
 
-#include "l_math.hpp"
 #include "l_mesh.hpp"
 #include <string>
 
@@ -13,7 +12,6 @@ enum class model_type { ball, maze };
 
 struct model final {
   std::vector<mesh> _meshes;
-  aabb _boundingBox;
   std::string _directory;
 };
 

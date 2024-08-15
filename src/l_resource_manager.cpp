@@ -7,6 +7,7 @@
 #include "assimp/types.h"
 #include "l_common.hpp"
 #include "l_entity.hpp"
+#include "l_math.hpp"
 #include "l_model.hpp"
 #include "l_shader.hpp"
 #include "l_texture.hpp"
@@ -289,6 +290,28 @@ std::pair<unsigned int, unsigned int> CreatePrimitiveVAO(std::vector<float> cons
   return std::make_pair<>(vao, vbo);
 }
 
+shader CreateCubeVAO(std::vector<float> const& vertices, GLenum const usage,
+                     std::vector<unsigned int> const& indices) {
+  unsigned int vao, vbo, ebo;
+
+  glGenVertexArrays(1, &vao);
+  glGenBuffers(1, &vbo);
+  glGenBuffers(1, &ebo);
+
+  glBindVertexArray(vao);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), usage);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), usage);
+
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, reinterpret_cast<void*>(0));
+
+  return shader(0, vao, vbo, ebo);
+}
+
 static std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTextureType type,
                                                       std::string const& typeName, model* model) {
   std::vector<mesh_texture> textures;
@@ -325,6 +348,7 @@ static std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTe
 }
 
 static mesh ProcessMesh(aiMesh* aiMesh, aiScene const* scene, model* model) {
+  aabb aabb{glm::vec3(FLT_MAX), glm::vec3(-FLT_MAX)};
   std::vector<vertex_data> vertices;
   std::vector<unsigned int> indices;
   std::vector<mesh_texture> textures;
@@ -338,12 +362,12 @@ static mesh ProcessMesh(aiMesh* aiMesh, aiScene const* scene, model* model) {
     position.y = aiMesh->mVertices[i].y;
     position.z = aiMesh->mVertices[i].z;
 
-    if (model->_boundingBox._min.x == FLT_MAX) {
-      model->_boundingBox._min = position;
-      model->_boundingBox._max = position;
+    if (aabb._min.x == FLT_MAX) {
+      aabb._min = position;
+      aabb._max = position;
     } else {
-      model->_boundingBox._min = glm::min(position, model->_boundingBox._min);
-      model->_boundingBox._max = glm::max(position, model->_boundingBox._max);
+      aabb._min = glm::min(position, aabb._min);
+      aabb._max = glm::max(position, aabb._max);
     }
 
     normal.x = aiMesh->mNormals[i].x;
@@ -384,11 +408,11 @@ static mesh ProcessMesh(aiMesh* aiMesh, aiScene const* scene, model* model) {
 
   textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 
-  return mesh{std::move(vertices), std::move(indices), std::move(textures), diffuseColour};
+  return mesh{std::move(vertices), std::move(indices), std::move(textures), diffuseColour, std::move(aabb)};
 }
 
 static void ProcessNode(aiNode* node, aiScene const* scene, model* model) {
-  model->_boundingBox._min.x = FLT_MAX;
+  // model->_boundingBox._min.x = FLT_MAX;
 
   for (unsigned int i{0}; i < node->mNumMeshes; ++i) {
     model->_meshes.emplace_back(ProcessMesh(scene->mMeshes[node->mMeshes[i]], scene, model));

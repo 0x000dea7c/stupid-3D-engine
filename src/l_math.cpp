@@ -1,22 +1,41 @@
 #include "l_math.hpp"
-#include "glm/common.hpp"
+#include <cfloat>
 
 namespace lain {
 
 bool RayIntersectsAABB(ray const& ray, aabb const& aabb) {
-  // -------------------------------
-  // TODO: understand the math!!!!!!
-  // -------------------------------
-  glm::vec3 tmin{(aabb._min - ray._position) / ray._direction};
-  glm::vec3 tmax{(aabb._max - ray._position) / ray._direction};
+  // OPTIMISE: there's a lot of ways to improve this.
+  float tmin = -FLT_MAX;
+  float tmax = FLT_MAX;
 
-  glm::vec3 t1{glm::min(tmin, tmax)};
-  glm::vec3 t2{glm::max(tmin, tmax)};
+  if (ray._direction.x != 0.f) {
+    float tx1 = (aabb._min.x - ray._position.x) / ray._direction.x;
+    float tx2 = (aabb._max.x - ray._position.x) / ray._direction.x;
+    tmin = glm::max(tmin, glm::min(tx1, tx2));
+    tmax = glm::min(tmax, glm::max(tx1, tx2));
+  } else if (ray._position.x < aabb._min.x || ray._position.x > aabb._max.x) {
+    return false;
+  }
 
-  double tNear = std::fmax(t1.x, std::fmax(t1.y, t1.z));
-  double tFar = std::fmin(t2.x, std::fmin(t2.y, t2.z));
+  if (ray._direction.y != 0.f) {
+    float ty1 = (aabb._min.y - ray._position.y) / ray._direction.y;
+    float ty2 = (aabb._max.y - ray._position.y) / ray._direction.y;
+    tmin = glm::max(tmin, glm::min(ty1, ty2));
+    tmax = glm::min(tmax, glm::max(ty1, ty2));
+  } else if (ray._position.y < aabb._min.y || ray._position.y > aabb._max.y) {
+    return false;
+  }
 
-  return tNear <= tFar && tFar >= 0.0;
+  if (ray._direction.z != 0.f) {
+    float tz1 = (aabb._min.z - ray._position.z) / ray._direction.z;
+    float tz2 = (aabb._max.z - ray._position.z) / ray._direction.z;
+    tmin = glm::max(tmin, glm::min(tz1, tz2));
+    tmax = glm::min(tmax, glm::max(tz1, tz2));
+  } else if (ray._position.z < aabb._min.z || ray._position.z > aabb._max.z) {
+    return false;
+  }
+
+  return tmax >= glm::max(0.f, tmin);
 }
 
 glm::vec4 ScreenSpaceToNormalisedDeviceCoordinates(glm::vec4 const& pos, float const width,

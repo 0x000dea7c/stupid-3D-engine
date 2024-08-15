@@ -26,6 +26,7 @@ enum class key : std::size_t {
   l,
   q,
   e,
+  b,
   count,
   unknown,
 };
@@ -53,11 +54,13 @@ bool IsKeyReleased(key const k);
 
 bool IsMouseButtonPressed(mouse_button const button);
 
+bool IsMouseButtonHeld(mouse_button const button);
+
+bool IsMouseButtonReleased(mouse_button const button);
+
 bool IsCursorMoving();
 
 void UpdateCursorPosition(glm::vec2 const& pos);
-
-void UpdateCursorPosition2(glm::vec2 const& pos); // KLUDGE
 
 void SetCursorIsMoving();
 

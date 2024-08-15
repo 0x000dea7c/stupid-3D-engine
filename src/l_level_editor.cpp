@@ -6,6 +6,7 @@
 #include "l_application.hpp"
 #include "l_camera.hpp"
 #include "l_common.hpp"
+#include "l_debug.hpp"
 #include "l_entity.hpp"
 #include "l_input_manager.hpp"
 #include "l_math.hpp"
@@ -21,6 +22,9 @@ namespace level_editor {
 
 using VertexObjectHandle = std::pair<unsigned int, unsigned int>;
 
+// BUG: entity_added is a temporary state whose purpose is to avoid deselecting
+// an entity when it was just added because an intersection test is done just
+// right after that
 enum class level_editor_mode { move, edit };
 
 static float constexpr kGridSquareSize{0.5f};
@@ -29,13 +33,16 @@ static glm::vec4 constexpr kGreyColour{0.5f, 0.5f, 0.5f, 1.f};
 static glm::vec4 constexpr kRedColour{1.f, 0.0f, 0.0f, 1.f};
 static glm::vec4 constexpr kGreenColour{0.f, 1.0f, 0.0f, 1.f};
 static glm::vec4 constexpr kDebugColour{0.33f, 0.1f, 0.1f, 1.f};
+static glm::vec4 constexpr kYellowColour{1.f, 1.f, 0.1f, 1.f};
 
 static level_editor_mode _mode;
 static camera3D _camera;
+// TODO: change to shader
 static VertexObjectHandle _grid;
 static VertexObjectHandle _axisX;
 static VertexObjectHandle _axisZ;
 static VertexObjectHandle _ray;
+static shader _boundingBox;
 static glm::vec3 _currentCameraDirection;
 static entity_id _selectedEntity;
 static std::vector<entity_id> _entities;
@@ -43,6 +50,8 @@ static glm::vec3 _imGuiEntityPosition;
 static ecs::entity_component_system* _ecs;
 static glm::vec3 _rayToCursorPos;
 static bool _debugDrawCursorRayInEditMode;
+static bool _debugDrawEntityAABB;
+static ray _cameraToCursorRay;
 
 static int GetSquaresToDraw() { return static_cast<int>((2 * kHalfGridExtent) / kGridSquareSize); }
 
@@ -52,11 +61,12 @@ void Initialise(ecs::entity_component_system* ecs) {
   _ecs = ecs;
 
   _debugDrawCursorRayInEditMode = false;
+  _debugDrawEntityAABB = false;
 
   _camera._position = glm::vec3(0.f);
   _camera._targetPosition = glm::vec3(0.f);
   _camera._worldUp = glm::vec3(0.f, 1.f, 0.f);
-  _camera._speed = 10.f;
+  _camera._speed = 20.f;
   _camera._sensitivity = 0.1f;
   _camera._lerp = 0.1f;
   _camera._yaw = 0.f;
@@ -109,15 +119,45 @@ void Initialise(ecs::entity_component_system* ecs) {
 
   _axisZ = resource_manager::CreatePrimitiveVAO(vertices, GL_STATIC_DRAW);
 
-  vertices = {0, 0, 0, 0, 0, 0};
+  vertices.assign(6, 0.f);
 
   _ray = resource_manager::CreatePrimitiveVAO(vertices, GL_DYNAMIC_DRAW);
+
+  std::vector<unsigned int> const indices = {
+      0, 1, 1, 2, 2, 3, 3, 0, // Bottom face
+      4, 5, 5, 6, 6, 7, 7, 4, // Top face
+      0, 4, 1, 5, 2, 6, 3, 7  // Vertical lines
+  };
+
+  vertices.assign(24, 0.f);
+
+  _boundingBox = resource_manager::CreateCubeVAO(vertices, GL_DYNAMIC_DRAW, indices);
 }
 
 static void ProcessInputInEditMode() {
-  if (input_manager::IsCursorMoving()) {
-    // TODO: do raycasting starting from camera position towards where the mouse is pointing.
-    // Find closest entity (if there's any) and select it.
+  if (!ImGui::IsAnyItemHovered() && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) &&
+      input_manager::IsMouseButtonPressed(input_manager::mouse_button::left)) {
+    bool pickedEntity{false};
+    std::size_t i{0};
+
+    // TODO: it's probably not a good idea to grab objects using their aabb because
+    // you want to be precise.
+    while (!pickedEntity && i < _entities.size()) {
+      if (_selectedEntity != _entities[i]) {
+        for (auto const& aabb : _ecs->GetAABBSComponents(_entities[i])) {
+          if (RayIntersectsAABB(_cameraToCursorRay, aabb._aabb)) {
+            _selectedEntity = _entities[i];
+            pickedEntity = true;
+          }
+        }
+      }
+
+      ++i;
+    }
+
+    if (!pickedEntity) {
+      _selectedEntity = 0;
+    }
   }
 
   if (input_manager::IsKeyPressed(input_manager::key::k)) {
@@ -177,6 +217,61 @@ static void UpdateInMoveMode(float const deltaTime) {
   ImGui::End();
 }
 
+static void AddEntityToLevel(int const selection) {
+  model_type type;
+
+  if (selection == 0) {
+    type = model_type::maze;
+  } else {
+    type = model_type::ball;
+  }
+
+  resource_manager::LoadModel(type);
+
+  _selectedEntity = ecs::GetNewEntityId();
+
+  auto transform =
+      transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), glm::vec3(0.f), glm::vec3(1.f));
+
+  _ecs->AddTransformComponent(_selectedEntity, transform);
+
+  resource_manager::AddEntityModelRelationship(_selectedEntity, type);
+
+  for (auto const& mesh : resource_manager::GetModelDataFromEntity(_selectedEntity)->_meshes) {
+    _ecs->AddAABBComponent(_selectedEntity, mesh._boundingBox);
+  }
+
+  _entities.push_back(_selectedEntity);
+}
+
+static void UpdateCursorInEditMode() {
+  ImGuiIO& io = ImGui::GetIO();
+
+  glm::vec4 cursorPos(io.MousePos.x, io.MousePos.y, 0.f, 0.f);
+
+  cursorPos = ScreenSpaceToNormalisedDeviceCoordinates(cursorPos, application::GetWindowWidth(),
+                                                       application::GetWindowHeight());
+
+  cursorPos = NormalisedDeviceCoordinatesToClipSpace(cursorPos);
+
+  cursorPos = ClipSpaceToViewSpace(cursorPos, renderer::GetCurrentProjectionMatrix());
+
+  cursorPos = ViewSpaceToWorldSpace(cursorPos, _camera.GetViewMatrix());
+
+  // DEBUG
+  _rayToCursorPos = glm::vec3(cursorPos) - _camera._position;
+
+  _cameraToCursorRay._direction = glm::normalize(glm::vec3(cursorPos) - _camera._position);
+
+  _cameraToCursorRay._position = _camera._position;
+}
+
+static void DeleteEntities() {
+  _ecs->Clear();
+  _entities.clear();
+  _selectedEntity = 0;
+}
+
 static void UpdateInEditMode() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame();
@@ -196,88 +291,58 @@ static void UpdateInEditMode() {
   ImGui::NewLine();
 
   if (ImGui::Button("Add")) {
-    model_type type;
-
-    if (selection == 0) {
-      type = model_type::maze;
-    } else {
-      type = model_type::ball;
-    }
-
-    // TODO: some module or something should do all of this as a unit
-    resource_manager::LoadModel(type);
-
-    _selectedEntity = ecs::GetNewEntityId();
-
-    _ecs->AddTransformComponent(
-        _selectedEntity,
-        transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), glm::vec3(0.f), glm::vec3(1.f)));
-
-    resource_manager::AddEntityModelRelationship(_selectedEntity, type);
-
-    _ecs->AddAABBComponent(_selectedEntity,
-                           resource_manager::GetModelDataFromEntity(_selectedEntity)->_boundingBox);
-
-    _entities.push_back(_selectedEntity);
-
-    _imGuiEntityPosition.x = _imGuiEntityPosition.y = _imGuiEntityPosition.z = 0.f;
+    AddEntityToLevel(selection);
   }
 
   ImGui::End();
 
   if (_selectedEntity != 0) {
+    // if you're here it means that you created the entity, which means the transfom component and
+    // aabb component are already created
+    auto transform = _ecs->GetTransformComponent(_selectedEntity);
+    bool modified{false};
+
+    _imGuiEntityPosition.x = transform._position.x;
+    _imGuiEntityPosition.y = transform._position.y;
+    _imGuiEntityPosition.z = transform._position.z;
+
     ImGui::Begin("Entity Information", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::Text("Id: %d", _selectedEntity);
-    ImGui::Text("Position");
     ImGui::NewLine();
-    ImGui::SliderFloat("X", &_imGuiEntityPosition.x, -10.f, 10.f, nullptr);
-    ImGui::SliderFloat("Y", &_imGuiEntityPosition.y, -10.f, 10.f, nullptr);
-    ImGui::SliderFloat("Z", &_imGuiEntityPosition.z, -10.f, 10.f, nullptr);
+
+    if (ImGui::DragFloat3("Position", &_imGuiEntityPosition.x, 0.1, -10.f, 10.f)) {
+      modified = true;
+    }
+
+    ImGui::NewLine();
+
+    if (ImGui::Button("Delete Entities")) {
+      DeleteEntities();
+    }
+
     ImGui::End();
 
-    auto const transform =
-        transform_component(glm::quat(0.f, 0.f, 0.f, 0.f), _imGuiEntityPosition, glm::vec3(1.f));
+    transform._position.x = _imGuiEntityPosition.x;
+    transform._position.y = _imGuiEntityPosition.y;
+    transform._position.z = _imGuiEntityPosition.z;
 
-    // Use the modified information to change entities' transform
-    _ecs->AddTransformComponent(_selectedEntity, transform);
+    // TODO: this shouldnt be here for too long
+    if (modified) {
+      _ecs->ResetAABBs(_selectedEntity);
 
-    auto& aabb = _ecs->GetAABBComponent(_selectedEntity);
+      for (auto const& mesh : resource_manager::GetModelDataFromEntity(_selectedEntity)->_meshes) {
+        auto bb = aabb_component(mesh._boundingBox);
 
-    aabb.Update(transform);
-  }
+        ECS_Update(transform, bb);
 
-  // ------------------
-  // Entity picking
-  // ------------------
-  ImGuiIO& io = ImGui::GetIO();
+        _ecs->AddAABBComponent(_selectedEntity, bb);
 
-  glm::vec4 cursorPos(io.MousePos.x, io.MousePos.y, 0.f, 0.f);
-
-  cursorPos = ScreenSpaceToNormalisedDeviceCoordinates(cursorPos, application::GetWindowWidth(),
-                                                       application::GetWindowHeight());
-
-  cursorPos = NormalisedDeviceCoordinatesToClipSpace(cursorPos);
-
-  cursorPos = ClipSpaceToViewSpace(cursorPos, renderer::GetCurrentProjectionMatrix());
-
-  cursorPos = ViewSpaceToWorldSpace(cursorPos, _camera.GetViewMatrix());
-
-  _rayToCursorPos = glm::vec3(cursorPos) - _camera._position;
-
-  ray cameraToCursorRay;
-  cameraToCursorRay._direction = glm::normalize(glm::vec3(cursorPos) - _camera._position);
-  cameraToCursorRay._position = _camera._position;
-
-  for (auto const& entity : _entities) {
-    auto transform = _ecs->GetTransformComponent(entity);
-
-    aabb entityaabb;
-    entityaabb._min = transform._position - 1.f;
-    entityaabb._min = transform._position + 1.f;
-
-    if (RayIntersectsAABB(cameraToCursorRay, entityaabb)) {
+        _ecs->AddTransformComponent(_selectedEntity, transform);
+      }
     }
   }
+
+  UpdateCursorInEditMode();
 }
 
 static void RenderInEditMode() {
@@ -301,7 +366,35 @@ static void DrawWorldAxis() {
   renderer::DrawLines(id, _axisZ.first, 2, _camera.GetViewMatrix(), kGreenColour);
 }
 
-static void DrawEntities() { renderer::DrawEntities(_entities, _camera); }
+static void DrawEntities() {
+  static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
+
+  if (_debugDrawEntityAABB) {
+    for (auto const& entityId : _entities) {
+
+      for (auto const& aabb : _ecs->GetAABBSComponents(entityId)) {
+
+        float vertices[] = {
+            aabb._initial._min.x, aabb._initial._min.y, aabb._initial._min.z, aabb._initial._max.x,
+            aabb._initial._min.y, aabb._initial._min.z, aabb._initial._max.x, aabb._initial._max.y,
+            aabb._initial._min.z, aabb._initial._min.x, aabb._initial._max.y, aabb._initial._min.z,
+            aabb._initial._min.x, aabb._initial._min.y, aabb._initial._max.z, aabb._initial._max.x,
+            aabb._initial._min.y, aabb._initial._max.z, aabb._initial._max.x, aabb._initial._max.y,
+            aabb._initial._max.z, aabb._initial._min.x, aabb._initial._max.y, aabb._initial._max.z,
+        };
+
+        glBindVertexArray(_boundingBox._vao);
+        glBindBuffer(GL_ARRAY_BUFFER, _boundingBox._vbo);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+        renderer::DrawBoundingBox(id, _boundingBox._vao, entityId, _camera.GetViewMatrix(),
+                                  kYellowColour);
+      }
+    }
+  }
+
+  renderer::DrawEntities(_entities, _camera);
+}
 
 static void Debug_DrawRayToCursor() {
   static unsigned int id{resource_manager::GetShader(kPrimitiveShaderId)->_id};
@@ -325,6 +418,10 @@ void ProcessInput() {
     _mode = level_editor_mode::edit;
   } else if (input_manager::IsKeyPressed(input_manager::key::f2)) {
     _mode = level_editor_mode::move;
+  }
+
+  if (input_manager::IsKeyPressed(input_manager::key::b)) {
+    _debugDrawEntityAABB = !_debugDrawEntityAABB;
   }
 
   switch (_mode) {
@@ -380,5 +477,4 @@ void Render() {
 }
 
 } // namespace level_editor
-
 }; // namespace lain

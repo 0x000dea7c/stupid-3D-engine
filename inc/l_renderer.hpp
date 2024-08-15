@@ -35,6 +35,12 @@ void DrawEntities(std::vector<entity_id> const& entities, camera3D const& camera
 void DrawLines(unsigned int const id, unsigned int const vao, std::size_t const count,
                glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
 
+void DrawBoundingBox(unsigned int const id, unsigned int const vao, entity_id const entityId,
+                     glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
+
+void DrawBoundingBoxWithoutModel(unsigned int const id, unsigned int const vao,
+                                 glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
+
 glm::mat4 GetCurrentProjectionMatrix();
 
 }; // namespace renderer

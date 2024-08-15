@@ -34,7 +34,7 @@ FetchContent_MakeAvailable(assimp)
 if(MSVC)
     add_compile_options(/W3)
 else()
-  add_compile_options(-Wall -Wextra -pedantic -fno-rtti -fno-exceptions -Wunused-result -msse4.1)
+  add_compile_options(-Wall -Wextra -pedantic -fno-exceptions -Wunused-result -msse4.1)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
