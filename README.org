@@ -77,9 +77,14 @@
 - X Implement clearing scene
 - X Implement full screen mode
 - X Change inputs for floats because it's very annoying
-- Code is a fucking mess, fix
-  - Read about ECS and fix your shit
-    
+- X Code is a fucking mess, fix
+  - X Read about ECS and fix your shit, for now it kinda works
+- X Add chance to remove selected entity
+- X Test reusing entities
+- X Rename DeleteX and use RemoveX instead, be consistent
+- X Change header files from .hpp to .h (core guidelines, they know better than me)
+- X Reorder function order in h-cpp files and get rid of annoying clang indentation
+
 *** TODO (4+ hours + research) Save current scene or level and load it back
 
 - Serialize
@@ -110,7 +115,7 @@
 - Ensure ball movement works correctly
 - Ensure ball physics with walls work correctly
 - Ensure ball hits end trigger and next level is loaded
-  
+
 *** TODO Add basic music
 
 - Allow user to select audio device and regulate volume
@@ -128,3 +133,5 @@
 *** TODO Add the constant and variable data uniforms through shaders
 
 *** TODO Add initial game video or show screen
+
+*** TODO Optimise entity manager so that it reuses ids instead of removing every time

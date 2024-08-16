@@ -1,49 +1,50 @@
-#include "l_main_menu.hpp"
+#include "l_main_menu.h"
 #include "glad/glad.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
-#include "l_event_manager.hpp"
+#include "l_event_manager.h"
 
-namespace lain {
+namespace lain
+{
+    namespace main_menu
+    {
+        void ProcessInput()
+        {
+        }
 
-namespace main_menu {
+        void Update()
+        {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
 
-void ProcessInput() {}
+            ImGui::NewFrame();
+            ImGui::Begin("Menu Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-void Update() {
-  ImGui_ImplOpenGL3_NewFrame();
-  ImGui_ImplSDL2_NewFrame();
+            if (ImGui::Button("Play")) {
+                event_manager::Post(event(event_type::main_menu_click_play));
+            }
 
-  ImGui::NewFrame();
-  ImGui::Begin("Menu Options", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+            if (ImGui::Button("Level Editor")) {
+                event_manager::Post(event(event_type::main_menu_click_level_editor));
+            }
 
-  if (ImGui::Button("Play")) {
-    event_manager::Post(event(event_type::main_menu_click_play));
-  }
+            if (ImGui::Button("Options")) {
+                event_manager::Post(event(event_type::main_menu_click_options));
+            }
 
-  if (ImGui::Button("Level Editor")) {
-    event_manager::Post(event(event_type::main_menu_click_level_editor));
-  }
+            if (ImGui::Button("Quit")) {
+                event_manager::Post(event(event_type::main_menu_click_quit));
+            }
 
-  if (ImGui::Button("Options")) {
-    event_manager::Post(event(event_type::main_menu_click_options));
-  }
+            ImGui::End();
+        }
 
-  if (ImGui::Button("Quit")) {
-    event_manager::Post(event(event_type::main_menu_click_quit));
-  }
-
-  ImGui::End();
-}
-
-void Render() {
-  glClearColor(0.f, 0.f, 0.f, 1.f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  ImGui::Render();
-  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-}; // namespace main_menu
-
-}; // namespace lain
+        void Render()
+        {
+            glClearColor(0.f, 0.f, 0.f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        }
+    };
+};

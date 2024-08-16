@@ -1,100 +1,103 @@
-#include "l_input_manager.hpp"
+#include "l_input_manager.h"
 
-namespace lain {
+namespace lain
+{
+    namespace input_manager
+    {
+        static bool _currentKeys[static_cast<std::size_t>(key::count)];
+        static bool _previousKeys[static_cast<std::size_t>(key::count)];
+        static bool _previousMouseButtons[static_cast<std::size_t>(mouse_button::count)];
+        static bool _currentMouseButtons[static_cast<std::size_t>(mouse_button::count)];
+        static glm::vec2 _cursorCoords;
+        static bool _cursorIsMoving;
 
-namespace input_manager {
+        void Initialise()
+        {
+            for (std::size_t i{0}; i < static_cast<std::size_t>(key::count); ++i) {
+                _currentKeys[i] = false;
+                _previousKeys[i] = false;
+            }
 
-static bool _currentKeys[static_cast<std::size_t>(key::count)];
-static bool _previousKeys[static_cast<std::size_t>(key::count)];
-static bool _previousMouseButtons[static_cast<std::size_t>(mouse_button::count)];
-static bool _currentMouseButtons[static_cast<std::size_t>(mouse_button::count)];
-static glm::vec2 _cursorCoords;
-static bool _cursorIsMoving;
+            for (std::size_t i{0}; i < static_cast<std::size_t>(mouse_button::count); ++i) {
+                _previousMouseButtons[i] = false;
+                _currentMouseButtons[i] = false;
+            }
+        }
 
-void Initialise() {
-  for (std::size_t i{0}; i < static_cast<std::size_t>(key::count); ++i) {
-    _currentKeys[i] = false;
-    _previousKeys[i] = false;
-  }
+        void BeginFrame()
+        {
+            for (std::size_t i{0}; i < static_cast<std::size_t>(key::count); ++i) {
+                _previousKeys[i] = _currentKeys[i];
+            }
 
-  for (std::size_t i{0}; i < static_cast<std::size_t>(mouse_button::count); ++i) {
-    _previousMouseButtons[i] = false;
-    _currentMouseButtons[i] = false;
-  }
-}
+            for (std::size_t i{0}; i < static_cast<std::size_t>(mouse_button::count); ++i) {
+                _previousMouseButtons[i] = _currentMouseButtons[i];
+            }
 
-void BeginFrame() {
-  for (std::size_t i{0}; i < static_cast<std::size_t>(key::count); ++i) {
-    _previousKeys[i] = _currentKeys[i];
-  }
+            _cursorIsMoving = false;
+        }
 
-  for (std::size_t i{0}; i < static_cast<std::size_t>(mouse_button::count); ++i) {
-    _previousMouseButtons[i] = _currentMouseButtons[i];
-  }
+        void UpdateKey(key const k, bool const pressed)
+        {
+            _currentKeys[static_cast<std::size_t>(k)] = pressed;
+        }
 
-  _cursorIsMoving = false;
-}
+        void UpdateMouseButton(mouse_button const button, bool const clicked)
+        {
+            _currentMouseButtons[static_cast<std::size_t>(button)] = clicked;
+        }
 
-void UpdateKey(key const k, bool const pressed) {
-  _currentKeys[static_cast<std::size_t>(k)] = pressed;
-}
+        bool IsKeyPressed(key const k)
+        {
+            return !_previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
+        }
 
-void UpdateMouseButton(mouse_button const button, bool const clicked) {
-  _currentMouseButtons[static_cast<std::size_t>(button)] = clicked;
-}
+        bool IsKeyHeld(key const k)
+        {
+            return _previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
+        }
 
-bool KeyPressed(key const k) {
-  return !_previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
-}
+        bool IsKeyReleased(key const k)
+        {
+            return _previousKeys[static_cast<std::size_t>(k)] && !_currentKeys[static_cast<std::size_t>(k)];
+        }
 
-bool KeyHeld(key const k) {
-  return _previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
-}
+        bool IsMouseButtonPressed(mouse_button const button)
+        {
+            return _previousMouseButtons[static_cast<std::size_t>(button)] &&
+                  !_currentMouseButtons[static_cast<std::size_t>(button)];
+        }
 
-bool KeyReleased(key const k) {
-  return _previousKeys[static_cast<unsigned int>(k)] && !_currentKeys[static_cast<std::size_t>(k)];
-}
+        bool IsMouseButtonHeld(mouse_button const button)
+        {
+            return _previousMouseButtons[static_cast<std::size_t>(button)] &&
+                   _currentMouseButtons[static_cast<std::size_t>(button)];
+        }
 
-bool MouseButtonIsPressed(mouse_button const button) {
-  return !_previousMouseButtons[static_cast<std::size_t>(button)] &&
-         _currentMouseButtons[static_cast<std::size_t>(button)];
-}
+        bool IsMouseButtonReleased(mouse_button const button)
+        {
+            return _previousMouseButtons[static_cast<std::size_t>(button)] &&
+                   !_currentMouseButtons[static_cast<std::size_t>(button)];
+        }
 
-void UpdateCursorPosition(glm::vec2 const& pos) { _cursorCoords = pos; }
+        bool IsCursorMoving()
+        {
+            return _cursorIsMoving;
+        }
 
-void SetCursorIsMoving() { _cursorIsMoving = true; }
+        void UpdateCursorPosition(glm::vec2 const& pos)
+        {
+            _cursorCoords = pos;
+        }
 
-bool IsKeyPressed(key const k) {
-  return !_previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
-}
+        void SetCursorIsMoving()
+        {
+            _cursorIsMoving = true;
+        }
 
-bool IsKeyHeld(key const k) {
-  return _previousKeys[static_cast<std::size_t>(k)] && _currentKeys[static_cast<std::size_t>(k)];
-}
-
-bool IsKeyReleased(key const k) {
-  return _previousKeys[static_cast<std::size_t>(k)] && !_currentKeys[static_cast<std::size_t>(k)];
-}
-
-bool IsMouseButtonPressed(mouse_button const button) {
-  return _previousMouseButtons[static_cast<std::size_t>(button)] &&
-         !_currentMouseButtons[static_cast<std::size_t>(button)];
-}
-
-bool IsMouseButtonHeld(mouse_button const button) {
-  return _previousMouseButtons[static_cast<std::size_t>(button)] &&
-         _currentMouseButtons[static_cast<std::size_t>(button)];
-}
-
-bool IsMouseButtonReleased(mouse_button const button) {
-  return _previousMouseButtons[static_cast<std::size_t>(button)] &&
-         !_currentMouseButtons[static_cast<std::size_t>(button)];
-}
-
-bool IsCursorMoving() { return _cursorIsMoving; }
-
-glm::vec2 GetCursorPosition() { return _cursorCoords; }
-
-}; // namespace input_manager
-
-}; // namespace lain
+        glm::vec2 GetCursorPosition()
+        {
+            return _cursorCoords;
+        }
+    };
+};

@@ -1,266 +1,274 @@
-#include "l_application.hpp"
+#include "l_application.h"
 #include "SDL2/SDL.h"
 #include "SDL_video.h"
 #include "glad/glad.h"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl2.h"
-#include "l_entity.hpp"
-#include "l_game.hpp"
-#include "l_input_manager.hpp"
-#include "l_platform.hpp"
-#include "l_renderer.hpp"
-#include "l_resource_manager.hpp"
+#include "l_game.h"
+#include "l_input_manager.h"
+#include "l_platform.h"
+#include "l_render_system.h"
+#include "l_resource_manager.h"
+#include "l_physics_system.h"
+#include "l_transform_system.h"
 #include <chrono>
 #include <iostream>
 
-namespace lain {
+namespace lain
+{
+    namespace application
+    {
+        static char const* kWindowTitle{"STUPID ENGINE"};
+        static int constexpr kOpenGLMajorVersion{4};
+        static int constexpr kOpenGLMinorVersion{6};
+        static int constexpr kDepthBufferSize{24};
+        static int constexpr kDoubleBuffer{1}; // 1 means true, which means the output will be double buffered
 
-static ecs::entity_component_system _ecs;
+        static int _width{0};
+        static int _height{0};
+        static bool _isInFullScreen{false};
+        static SDL_Window* _window;
+        static int _SDLWindowFlags{SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_INPUT_GRABBED};
+        static SDL_GLContext _context;
 
-void ConstrainCursorInWindow() { SDL_SetRelativeMouseMode(SDL_TRUE); }
+        static float Time();
+        static void InitialiseImGui();
+        static input_manager::key SDLKeyToEngine(int const key);
+        static input_manager::mouse_button SDLMouseButtonToEngine(int const mouseButton);
 
-void ReleaseCursorFromWindow() { SDL_SetRelativeMouseMode(SDL_FALSE); }
+        bool Initialise(bool const fullScreen)
+        {
+            _isInFullScreen = fullScreen;
 
-namespace application {
+            // No need to sync C and C++ I/O streams, this might improve performance.
+            std::ios::sync_with_stdio(false);
 
-// --------
-// Constants
-// --------
-static char const* kWindowTitle{"STUPID ENGINE"};
-static int constexpr kOpenGLMajorVersion{4};
-static int constexpr kOpenGLMinorVersion{6};
-static int constexpr kDepthBufferSize{24};
-static int constexpr kDoubleBuffer{
-    1}; // 1 means true, which means the output will be double buffered
+            // -----
+            // SDL
+            // -----
+            if (_isInFullScreen) {
+                _SDLWindowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+            }
 
-// ---------------------------------------------------------------------.
-//
-// No one needs to know about this implementation, just use the functions that it offers in its
-// interface
-// -----------------------------------------------------------------------------
-static int _width{0};
-static int _height{0};
-static bool _isInFullScreen{false};
-static SDL_Window* _window;
-static int _SDLWindowFlags{SDL_WINDOW_OPENGL | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_INPUT_GRABBED};
-static SDL_GLContext _context;
+            if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+                std::cerr << __FUNCTION__ << ": couldn't initialise SDL: " << SDL_GetError() << '\n';
+                return false;
+            }
 
-// -------------------
-// Internal functions
-// -------------------
+            SDL_DisplayMode displayMode;
 
-static float Time() {
-  using namespace std::chrono;
-  static const auto start = high_resolution_clock::now();
-  return duration<float>(high_resolution_clock::now() - start).count();
-}
+            if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
+                std::cerr << __FUNCTION__ << ": couldn't get desktop display mode: " << SDL_GetError() << '\n';
+                return false;
+            }
 
-static void InitialiseImGui() {
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+            _width = displayMode.w;
+            _height = displayMode.h;
 
-  ImGui_ImplSDL2_InitForOpenGL(_window, _context);
-  ImGui_ImplOpenGL3_Init();
-}
+            _window = SDL_CreateWindow(kWindowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _width, _height, _SDLWindowFlags);
 
-static input_manager::key SDLKeyToEngine(int const key) {
-  switch (key) {
-  case SDLK_w:
-    return input_manager::key::w;
-  case SDLK_s:
-    return input_manager::key::s;
-  case SDLK_a:
-    return input_manager::key::a;
-  case SDLK_d:
-    return input_manager::key::d;
-  case SDLK_q:
-    return input_manager::key::q;
-  case SDLK_e:
-    return input_manager::key::e;
-  case SDLK_k:
-    return input_manager::key::k;
-  case SDLK_b:
-    return input_manager::key::b;
-  case SDLK_F1:
-    return input_manager::key::f1;
-  case SDLK_F2:
-    return input_manager::key::f2;
-  case SDLK_ESCAPE:
-    return input_manager::key::esc;
-  default:
-    return input_manager::key::unknown;
-  }
-}
+            if (_window == nullptr) {
+                std::cerr << __FUNCTION__ << ": couldn't create SDL window: " << SDL_GetError() << '\n';
+                return false;
+            }
 
-static input_manager::mouse_button SDLMouseButtonToEngine(int const mouseButton) {
-  switch (mouseButton) {
-  case SDL_BUTTON_LEFT:
-    return input_manager::mouse_button::left;
-  default:
-    return input_manager::mouse_button::unknown;
-  }
-}
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, kOpenGLMajorVersion);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, kOpenGLMinorVersion);
+            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, kDoubleBuffer);
+            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, kDepthBufferSize);
 
-bool Initialise(bool const fullScreen) {
-  // _width = static_cast<int>(width * 1.f);
-  // _height = static_cast<int>(height * 1.f);
+            _context = SDL_GL_CreateContext(_window);
 
-  _isInFullScreen = fullScreen;
+            SDL_GL_MakeCurrent(_window, _context);
 
-  // No need to sync C and C++ I/O streams, this might improve performance
-  std::ios::sync_with_stdio(false);
+            SDL_GL_SetSwapInterval(1);
 
-  // -----
-  // SDL
-  // -----
-  if (_isInFullScreen) {
-    _SDLWindowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-  }
+            if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+                std::cerr << __FUNCTION__ << ": failed to initialise GLAD\n";
+                return false;
+            }
 
-  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
-    std::cerr << __FUNCTION__ << ": couldn't initialise SDL: " << SDL_GetError() << '\n';
-    return false;
-  }
+            // -----
+            // ImGui
+            // -----
+            InitialiseImGui();
 
-  SDL_DisplayMode displayMode;
+            // -------------
+            // OpenGL stuff
+            // -------------
+            glEnable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
 
-  if (SDL_GetDesktopDisplayMode(0, &displayMode) != 0) {
-    std::cerr << __FUNCTION__ << ": couldn't get desktop display mode: " << SDL_GetError() << '\n';
-    return false;
-  }
+            // --------------------------
+            // Game stuff initialisation
+            // --------------------------
+            game::Initialise();
+            resource_manager::Initialise();
+            render_system::Initialise(_width, _height);
 
-  _width = displayMode.w;
-  _height = displayMode.h;
+            return true;
+        }
 
-  _window = SDL_CreateWindow(kWindowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _width,
-                             _height, _SDLWindowFlags);
+        void ToggleFullScreen()
+        {
+            _isInFullScreen = !_isInFullScreen;
+            int const flags{_isInFullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0};
+            SDL_SetWindowFullscreen(_window, flags);
+        }
 
-  if (_window == nullptr) {
-    std::cerr << __FUNCTION__ << ": couldn't create SDL window: " << SDL_GetError() << '\n';
-    return false;
-  }
+        void Shutdown()
+        {
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplSDL2_Shutdown();
+            ImGui::DestroyContext();
 
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, kOpenGLMajorVersion);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, kOpenGLMinorVersion);
-  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, kDoubleBuffer);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, kDepthBufferSize);
+            SDL_GL_DeleteContext(_context);
 
-  _context = SDL_GL_CreateContext(_window);
+            if (_window != nullptr) {
+                SDL_DestroyWindow(_window);
+            }
 
-  SDL_GL_MakeCurrent(_window, _context);
+            SDL_Quit();
+        }
 
-  SDL_GL_SetSwapInterval(1);
+        void Run()
+        {
+            float lastFrame{0.f};
 
-  if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-    std::cerr << __FUNCTION__ << ": failed to initialise GLAD\n";
-    return false;
-  }
+            while (!game::IsShuttingDown()) {
+                float const currFrame{Time()};
+                float const deltaTime{currFrame - lastFrame};
+                lastFrame = currFrame;
 
-  // -----
-  // ImGui
-  // -----
-  InitialiseImGui();
+                input_manager::BeginFrame();
 
-  // -------------
-  // OpenGL stuff
-  // -------------
-  glEnable(GL_CULL_FACE);
-  glEnable(GL_DEPTH_TEST);
+                glViewport(0, 0, _width, _height);
 
-  // --------------------------
-  // Game stuff initialisation
-  // --------------------------
-  game::Initialise(&_ecs);
-  resource_manager::Initialise();
-  renderer::Initialise(_width, _height, &_ecs);
+                SDL_Event event;
 
-  return true;
-}
+                while (SDL_PollEvent(&event)) {
+                    ImGui_ImplSDL2_ProcessEvent(&event);
 
-void ToggleFullScreen() {
-  _isInFullScreen = !_isInFullScreen;
+                    if (event.type == SDL_QUIT) {
+                        game::ForceShutdown();
+                    }
 
-  int const flags{_isInFullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0};
+                    bool const userForcesShutdown{event.type == SDL_WINDOWEVENT &&
+                                                  event.window.event == SDL_WINDOWEVENT_CLOSE &&
+                                                  event.window.windowID == SDL_GetWindowID(_window)};
 
-  SDL_SetWindowFullscreen(_window, flags);
-}
+                    if (userForcesShutdown) {
+                        game::ForceShutdown();
+                    }
 
-void Shutdown() {
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplSDL2_Shutdown();
-  ImGui::DestroyContext();
+                    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+                        auto const key = SDLKeyToEngine(event.key.keysym.sym);
+                        bool const isPressed{event.type == SDL_KEYDOWN};
+                        input_manager::UpdateKey(key, isPressed);
+                    }
 
-  SDL_GL_DeleteContext(_context);
+                    if (event.type == SDL_MOUSEMOTION) {
+                        input_manager::UpdateCursorPosition(glm::vec2(event.motion.xrel, -event.motion.yrel));
+                        input_manager::SetCursorIsMoving();
+                    }
 
-  if (_window != nullptr) {
-    SDL_DestroyWindow(_window);
-  }
+                    if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
+                        input_manager::mouse_button const button{SDLMouseButtonToEngine(event.button.button)};
+                        input_manager::UpdateMouseButton(button, event.type == SDL_MOUSEBUTTONDOWN);
+                    }
+                }
 
-  SDL_Quit();
-}
+                game::ProcessInput();
 
-void Run() {
-  float lastFrame{0.f};
+                game::Update(deltaTime);
 
-  while (!game::IsShuttingDown()) {
-    float const currFrame{Time()};
-    float const deltaTime{currFrame - lastFrame};
-    lastFrame = currFrame;
+                game::Render();
 
-    input_manager::BeginFrame();
+                SDL_GL_SwapWindow(_window);
+            }
+        }
 
-    glViewport(0, 0, _width, _height);
+        float GetWindowWidth()
+        {
+            return static_cast<float>(_width);
+        }
 
-    SDL_Event event;
+        float GetWindowHeight()
+        {
+            return static_cast<float>(_height);
+        }
 
-    while (SDL_PollEvent(&event)) {
-      ImGui_ImplSDL2_ProcessEvent(&event);
+        void SetWindowTitle(std::string&& newTitle)
+        {
+            SDL_SetWindowTitle(_window, newTitle.c_str());
+        }
 
-      if (event.type == SDL_QUIT) {
-        game::ForceShutdown();
-      }
+        static float Time()
+        {
+            using namespace std::chrono;
+            static const auto start = high_resolution_clock::now();
+            return duration<float>(high_resolution_clock::now() - start).count();
+        }
 
-      if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
-          event.window.windowID == SDL_GetWindowID(_window)) {
-        game::ForceShutdown();
-      }
+        static void InitialiseImGui()
+        {
+            IMGUI_CHECKVERSION();
+            ImGui::CreateContext();
+            ImGuiIO& io = ImGui::GetIO();
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+            io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+            ImGui_ImplSDL2_InitForOpenGL(_window, _context);
+            ImGui_ImplOpenGL3_Init();
+        }
 
-      if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-        auto const key = SDLKeyToEngine(event.key.keysym.sym);
-        bool const isPressed{event.type == SDL_KEYDOWN};
-        input_manager::UpdateKey(key, isPressed);
-      }
+        static input_manager::key SDLKeyToEngine(int const key) {
+            switch (key) {
+                case SDLK_w:
+                    return input_manager::key::w;
+                case SDLK_s:
+                    return input_manager::key::s;
+                case SDLK_a:
+                    return input_manager::key::a;
+                case SDLK_d:
+                    return input_manager::key::d;
+                case SDLK_q:
+                    return input_manager::key::q;
+                case SDLK_e:
+                    return input_manager::key::e;
+                case SDLK_k:
+                    return input_manager::key::k;
+                case SDLK_b:
+                    return input_manager::key::b;
+                case SDLK_F1:
+                    return input_manager::key::f1;
+                case SDLK_F2:
+                    return input_manager::key::f2;
+                case SDLK_ESCAPE:
+                    return input_manager::key::esc;
+                default:
+                    return input_manager::key::unknown;
+            }
+        }
 
-      if (event.type == SDL_MOUSEMOTION) {
-        input_manager::UpdateCursorPosition(glm::vec2(event.motion.xrel, -event.motion.yrel));
-        input_manager::SetCursorIsMoving();
-      }
+        static input_manager::mouse_button SDLMouseButtonToEngine(int const mouseButton)
+        {
+            switch (mouseButton) {
+                case SDL_BUTTON_LEFT:
+                    return input_manager::mouse_button::left;
+                default:
+                    return input_manager::mouse_button::unknown;
+            }
+        }
+    };
 
-      if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP) {
-        input_manager::mouse_button const button{SDLMouseButtonToEngine(event.button.button)};
-        input_manager::UpdateMouseButton(button, event.type == SDL_MOUSEBUTTONDOWN);
-      }
+    void ConstrainCursorInWindow()
+    {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
     }
 
-    game::ProcessInput();
-
-    game::Update(deltaTime);
-
-    game::Render();
-
-    SDL_GL_SwapWindow(_window);
-  }
-}
-
-float GetWindowWidth() { return static_cast<float>(_width); }
-
-float GetWindowHeight() { return static_cast<float>(_height); }
-
-void SetWindowTitle(std::string&& newTitle) { SDL_SetWindowTitle(_window, newTitle.c_str()); }
-
-}; // namespace application
-}; // namespace lain
+    void ReleaseCursorFromWindow()
+    {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+};
