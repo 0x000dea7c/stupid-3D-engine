@@ -64,5 +64,10 @@ namespace lain
     {
       return _entities[id]._collisionShape;
     }
+
+    physics_component GetPhysicsComponent(entity_id const id)
+    {
+      return _entities[id];
+    }
   };
 };

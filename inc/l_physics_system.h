@@ -28,5 +28,8 @@ namespace lain
     void AddCollisionShapeForEntity(entity_id const id, aabb shape);
 
     std::vector<aabb> const& GetCollisionShapes(entity_id const id);
+
+    // Used for serialisation.
+    physics_component GetPhysicsComponent(entity_id const id);
   };
 };

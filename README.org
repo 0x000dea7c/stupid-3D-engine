@@ -85,18 +85,23 @@
 - X Change header files from .hpp to .h (core guidelines, they know better than me)
 - X Reorder function order in h-cpp files and get rid of annoying clang indentation
 
-*** TODO (4+ hours + research) Save current scene or level and load it back
+*** DONE (4+ hours + research) Save current scene or level and load it back
 
 - X Show ImGui button to save current level
-- For serialising/deserialising, it's a good idea to use fixed types. Change int to i32, unsigned int to u32, float to f32, etc.
+- X For serialising/deserialising, it's a good idea to use fixed types. Change int to i32, unsigned int to u32, float to f32, etc.
   - X level editor
   - X resource manager
   - Everywhere!
-- Show ImGui list to show levels to load
-- Serialise
-- Deserialise
-- Adding rigid body somewhere???
+- X Show ImGui list to show levels to load
+  - No need, it's ugly and complicated. kiss
+- X Serialise
+- X Deserialise
+- X Adding rigid body somewhere???
+  - That shit will get addressed when you actually add the rigid body
 
+*** TODO Use fixed types every fucking where!
+*** TODO Refactor level editor file because it's a mess
+*** TODO Consistent format style!
 *** TODO Define start and end points in the created level
 
 - The end point acts as a trigger, whenever the ball position is inside the bounding box of the end position, then game ended

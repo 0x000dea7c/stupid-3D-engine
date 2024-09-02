@@ -73,6 +73,24 @@ namespace lain
 	return false;
       }
 
+      // XXX: I don't think you need to do this, there's probably a way to create the window with the right resolution
+      auto displayIndex = SDL_GetWindowDisplayIndex(_window);
+
+      if (displayIndex < 0) {
+	std::cerr << __FUNCTION__ << ": couldn't get display index info: " << SDL_GetError() << '\n';
+	return false;
+      }
+
+      if (SDL_GetDesktopDisplayMode(displayIndex, &displayMode) != 0) {
+	std::cerr << __FUNCTION__ << ": couldn't get desktop display mode: " << SDL_GetError() << '\n';
+	return false;
+      }
+
+      _width = displayMode.w;
+      _height = displayMode.h;
+
+      SDL_SetWindowSize(_window, _width, _height);
+
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, kOpenGLMajorVersion);
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, kOpenGLMinorVersion);
       SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, kDoubleBuffer);

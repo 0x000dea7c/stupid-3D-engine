@@ -51,7 +51,6 @@ namespace lain
     static glm::vec3 _imGuiEntityPosition;
     static bool _debugDrawEntityAABB;
     static ray _cameraToCursorRay;
-    static std::vector<char const*> _levelsFileNames;
 
     static i32 GetSquaresToDraw();
     static void ProcessInputInEditMode();
@@ -68,6 +67,7 @@ namespace lain
     static void DrawWorldAxis();
     static void DrawEntities();
     static void SaveLevel(char const* filename);
+    static void LoadLevel(char const* filename);
 
     void Initialise()
     {
@@ -144,15 +144,6 @@ namespace lain
       vertices.assign(24, 0.f);
 
       _boundingBox = resource_manager::CreateCubeVAO(vertices, GL_DYNAMIC_DRAW, indices);
-
-      //
-      // Scan levels directory and grab their names. This is for showing them in the level selection list.
-      //
-      // This directory is already created by cmake, it's GUARANTEED that it will exist.
-      //
-      for (auto const& entry : std::filesystem::directory_iterator("./levels")) {
-	_levelsFileNames.push_back(strdup(entry.path().filename().c_str()));
-      }
     }
 
     void ProcessInput()
@@ -406,8 +397,6 @@ namespace lain
 	AddEntityToLevel(selection);
       }
 
-      static char buffer[32] = "";
-
       if (entity_system::GetEntityCount() > 0) {
 	ImGui::NewLine();
 
@@ -417,34 +406,22 @@ namespace lain
 
 	ImGui::NewLine();
 
-	static bool canSave{false};
-
-	if (ImGui::InputText("Level Name", buffer, sizeof(buffer), ImGuiInputTextFlags_CharsNoBlank)) {
-	  canSave = true;
-	}
-
-	if (canSave && ImGui::Button("Save Level")) {
-	  {
-	    char fuckyou[64];
-	    std::stringstream ss;
-	    ss << "levels/" << buffer << ".level";
-	    strncpy(fuckyou, ss.str().c_str(), 64);
-	    SaveLevel(fuckyou);
-	  }
-
-	  if (std::find(_levelsFileNames.begin(), _levelsFileNames.end(), buffer) == _levelsFileNames.end()) {
-	    _levelsFileNames.push_back(strdup(buffer));
-	  }
-	}
       }
 
-      if (!_levelsFileNames.empty()) {
-	ImGui::NewLine();
+      {
+	static bool notEmpty{false};
+	static char buffer[32] = "";
 
-	static i32 selected{0};
+	if (ImGui::InputText("Level Name", buffer, sizeof(buffer), ImGuiInputTextFlags_CharsNoBlank)) {
+	  notEmpty = true;
+	}
 
-	if (ImGui::Combo("Level to Load ", &selected, _levelsFileNames.data(), _levelsFileNames.size())) {
-	  strncpy(buffer, _levelsFileNames[selected], 32);
+	if (notEmpty && ImGui::Button("Save Level")) {
+	  SaveLevel(buffer);
+	}
+
+	if (notEmpty && ImGui::Button("Load Level")) {
+	  LoadLevel(buffer);
 	}
       }
 
@@ -552,6 +529,8 @@ namespace lain
 
     static void SaveLevel(char const* filename)
     {
+      std::stringstream ss;
+      ss << "levels/" << filename << ".level";
       //
       // What constitutes a level now:
       //
@@ -565,7 +544,7 @@ namespace lain
       //
       // IDEA: add versioning number to do one thing or another? Don't need it for now.
       //
-      std::ofstream levelStreamFile(filename, std::ios::binary);
+      std::ofstream levelStreamFile(ss.str(), std::ios::binary);
 
       if (!levelStreamFile.is_open()) {
 	// TODO: properly log this shitty case
@@ -573,7 +552,11 @@ namespace lain
 	return;
       }
 
-      for (u32 i{0}; i < entity_system::GetEntityCount(); ++i) {
+      auto const entityCount = entity_system::GetEntityCount();
+
+      levelStreamFile.write(reinterpret_cast<char const*>(&entityCount), sizeof(entityCount));
+
+      for (u32 i{0}; i < entityCount; ++i) {
 
 	if (entity_system::IsDestroyed(i)) {
 	  continue;
@@ -583,7 +566,7 @@ namespace lain
 	auto const transform = transform_system::GetTransform(i);
 
 	// Get physics data.
-	auto const physicsData = physics_system::GetCollisionShapes(i);
+	auto const physicsData = physics_system::GetPhysicsComponent(i);
 
 	//
 	// TODO: don't know how to do this yet. stupidddddddddddddddddd
@@ -595,10 +578,77 @@ namespace lain
 	//
 	auto const modelType = resource_manager::GetModelType(i);
 
+	//
 	// Serialise the fuck out of them.
+	//
+	//
+	// This one's easy
+	//
 	levelStreamFile.write(reinterpret_cast<char const*>(&transform), sizeof(transform_component));
-	levelStreamFile.write(reinterpret_cast<char const*>(&physicsData), sizeof(physics_component));
+
+	//
+	// This has dynamic elements, what a nuisance... alright:
+	//
+	// 1) serialise size of the vector
+	// 2) serialise contents of each vector
+	//
+	auto const size = physicsData._collisionShape.size();
+	levelStreamFile.write(reinterpret_cast<char const*>(&size), sizeof(size));
+	levelStreamFile.write(reinterpret_cast<char const*>(physicsData._collisionShape.data()), size * sizeof(aabb));
+	levelStreamFile.write(reinterpret_cast<char const*>(physicsData._collisionShapeStart.data()), size * sizeof(aabb));
+
+	// This one's also easy.
 	levelStreamFile.write(reinterpret_cast<char const*>(&modelType), sizeof(model_type));
+      }
+    }
+
+    static void LoadLevel(char const* filename)
+    {
+      std::stringstream ss;
+      ss << "levels/" << filename << ".level";
+
+      std::ifstream levelFileStream(ss.str(), std::ios::binary);
+
+      if (!levelFileStream.is_open()) {
+	std::clog << __FUNCTION__ << ": couldn't load level file." << std::endl;
+	return;
+      }
+
+      transform_component transform;
+      physics_component physicsData;
+      model_type modelType;
+      u32 entityCount;
+
+      levelFileStream.read(reinterpret_cast<char*>(&entityCount), sizeof(entityCount));
+
+      for (u32 i{0}; i < entityCount; ++i) {
+	levelFileStream.read(reinterpret_cast<char*>(&transform), sizeof(transform_component));
+
+	std::size_t size;
+	levelFileStream.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+	physicsData._collisionShape.resize(size);
+	physicsData._collisionShapeStart.resize(size);
+
+	levelFileStream.read(reinterpret_cast<char*>(physicsData._collisionShape.data()), size * sizeof(aabb));
+	levelFileStream.read(reinterpret_cast<char*>(physicsData._collisionShapeStart.data()), size * sizeof(aabb));
+
+	levelFileStream.read(reinterpret_cast<char*>(&modelType), sizeof(model_type));
+
+	// TODO: clear the whole scene first
+
+	// TODO: do this per entity!
+
+	// TODO: this crap is repeated twice somewhere
+	auto entityId = entity_system::AddEntity();
+	transform_system::AddEntity(entityId, std::move(transform));
+	resource_manager::AddEntityModelRelationship(entityId, modelType);
+	auto const* model = resource_manager::GetModelDataFromEntity(entityId);
+	render_system::AddEntity(render_component(model));
+	physics_system::AddEntity(entityId, std::move(physicsData));
+	for (auto const& mesh : model->_meshes) {
+	  physics_system::AddCollisionShapeForEntity(entityId, mesh._boundingBox);
+	}
       }
     }
   };
