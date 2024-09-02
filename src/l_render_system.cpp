@@ -25,8 +25,7 @@ namespace lain
       }
     };
 
-    using cache_type
-    = std::unordered_map<std::pair<u32, std::string>, u32, pair_hash>;
+    using cache_type = std::unordered_map<std::pair<u32, std::string>, u32, pair_hash>;
 
     static f32 constexpr kFovY{45.f};
     static f32 constexpr kNearPlaneDistance{0.1f};
@@ -37,11 +36,11 @@ namespace lain
     static shader const* _meshWithoutTextureShader;
     static std::vector<render_component> _entities;
 
-    static u32 GetUniformLocation(u32 const id, std::string const& uniname);
+    static u32 GetUniformLocation(u32 id, std::string const& uniname);
     static void DrawMeshWithTexture(mesh const& mesh);
     static void DrawMeshWithNoTexture(mesh const& mesh);
 
-    void Initialise(f32 const width, f32 const height)
+    void Initialise(f32 width, f32 height)
     {
       _perspective = glm::perspective(glm::radians(kFovY), width / height, kNearPlaneDistance, kFarPlaneDistance);
 
@@ -56,34 +55,34 @@ namespace lain
       SetUniformMat4(_meshWithoutTextureShader->_id, "projection", _perspective);
     }
 
-    void UseShader(u32 const id)
+    void UseShader(u32 id)
     {
       glUseProgram(id);
     }
 
-    void SetUniformMat4(u32 const id, std::string const& uniname, glm::mat4 const& m)
+    void SetUniformMat4(u32 id, std::string const& uniname, glm::mat4 const& m)
     {
       glUniformMatrix4fv(GetUniformLocation(id, uniname), 1, false, glm::value_ptr(m));
     }
 
-    void SetUniformVec2(u32 const id, std::string const& uniname, glm::vec2 const& value)
+    void SetUniformVec2(u32 id, std::string const& uniname, glm::vec2 const& value)
     {
       glUniform2f(GetUniformLocation(id, uniname), value.x, value.y);
     }
 
-    void SetUniformVec3(u32 const id, std::string const& uniname, glm::vec3 const& value)
+    void SetUniformVec3(u32 id, std::string const& uniname, glm::vec3 const& value)
     {
       glUniform3f(GetUniformLocation(id, uniname), value.x, value.y, value.z);
     }
 
-    void SetUniformVec4(u32 const id, std::string const& uniname, glm::vec4 const& value)
+    void SetUniformVec4(u32 id, std::string const& uniname, glm::vec4 const& value)
     {
       glUniform4f(GetUniformLocation(id, uniname), value.x, value.y, value.z, value.w);
     }
 
-    void SetUniformInt(u32 const id, std::string const& uniname, int const value)
+    void SetUniformInt(u32 id, std::string const& uniname, i32 value)
     {
-      glUniform1i(GetUniformLocation(id, uniname), value);
+      glUniform1i(GetUniformLocation(id, uniname), int(value));
     }
 
     void DrawEntities(camera3D const& camera)
@@ -117,8 +116,7 @@ namespace lain
       }
     }
 
-    void DrawLines(u32 const id, u32 const vao, u32 const count,
-		   glm::mat4 const& view, glm::vec4 const& colour)
+    void DrawLines(u32 id, u32 vao, u32 count, glm::mat4 const& view, glm::vec4 const& colour)
     {
       UseShader(id);
 
@@ -131,7 +129,7 @@ namespace lain
       glDrawArrays(GL_LINES, 0, count);
     }
 
-    void DrawBoundingBox(u32 const id, u32 const vao, glm::mat4 const& view, glm::vec4 const& colour)
+    void DrawBoundingBox(u32 id, u32 vao, glm::mat4 const& view, glm::vec4 const& colour)
     {
       UseShader(id);
 
@@ -144,8 +142,7 @@ namespace lain
       glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
     }
 
-    void DrawBoundingBoxWithoutModel(u32 const id, u32 const vao,
-				     glm::mat4 const& view, glm::vec4 const& colour)
+    void DrawBoundingBoxWithoutModel(u32 id, u32 vao, glm::mat4 const& view, glm::vec4 const& colour)
     {
       UseShader(id);
 
@@ -168,12 +165,12 @@ namespace lain
       _entities.emplace_back(r);
     }
 
-    void SetEntity(entity_id const id, render_component&& r)
+    void SetEntity(entity_id id, render_component&& r)
     {
       _entities[id] = std::move(r);
     }
 
-    void RemoveEntity(entity_id const id)
+    void RemoveEntity(entity_id id)
     {
       _entities.erase(_entities.begin() + id);
     }
@@ -214,7 +211,7 @@ namespace lain
       glDrawElements(GL_TRIANGLES, mesh._indices.size(), GL_UNSIGNED_INT, 0);
     }
 
-    static u32 GetUniformLocation(u32 const id, std::string const& uniname)
+    static u32 GetUniformLocation(u32 id, std::string const& uniname)
     {
       const auto key = std::make_pair(id, uniname);
       const auto it = _uniforms.find(key);

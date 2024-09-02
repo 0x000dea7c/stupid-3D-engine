@@ -30,7 +30,7 @@ namespace lain
       }
     }
 
-    void AddEntity(entity_id const id, physics_component&& p)
+    void AddEntity(entity_id id, physics_component&& p)
     {
       if (id < _entities.size()) {
 	_entities[id] = std::move(p);
@@ -39,7 +39,7 @@ namespace lain
       }
     }
 
-    void SetEntity(entity_id const id, physics_component&& p)
+    void SetEntity(entity_id id, physics_component&& p)
     {
       _entities[id] = std::move(p);
     }
@@ -49,23 +49,23 @@ namespace lain
       _entities.clear();
     }
 
-    void RemoveEntity(entity_id const id)
+    void RemoveEntity(entity_id id)
     {
       _entities.erase(_entities.begin() + id);
     }
 
-    void AddCollisionShapeForEntity(entity_id const id, aabb shape)
+    void AddCollisionShapeForEntity(entity_id id, aabb shape)
     {
       _entities[id]._collisionShape.emplace_back(shape);
       _entities[id]._collisionShapeStart.emplace_back(shape);
     }
 
-    std::vector<aabb> const& GetCollisionShapes(entity_id const id)
+    std::vector<aabb> const& GetCollisionShapes(entity_id id)
     {
       return _entities[id]._collisionShape;
     }
 
-    physics_component GetPhysicsComponent(entity_id const id)
+    physics_component GetPhysicsComponent(entity_id id)
     {
       return _entities[id];
     }

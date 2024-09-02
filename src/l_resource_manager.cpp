@@ -31,12 +31,12 @@ namespace lain
     std::unordered_map<entity_id, model_type> _entityModelRelationship;
     std::unordered_map<std::string, mesh_texture> _meshTexturesCache;
 
-    static bool ShaderHasCompilationErrors(u32 const program, shader_type const type);
+    static bool ShaderHasCompilationErrors(u32 program, shader_type type);
     static u32 CompileAndLinkShaders(std::filesystem::path const& vertex, std::filesystem::path const& fragment);
     static std::vector<mesh_texture> LoadMaterialTextures(aiMaterial* material, aiTextureType type, std::string const& typeName, model* model);
     static mesh ProcessMesh(aiMesh* aiMesh, aiScene const* scene, model* model);
     static void ProcessNode(aiNode* node, aiScene const* scene, model* model);
-    static std::filesystem::path GetPathFromModelType(model_type const type);
+    static std::filesystem::path GetPathFromModelType(model_type type);
     static void LoadModels();
 
     void Initialise()
@@ -276,7 +276,7 @@ namespace lain
       return _entityModelRelationship[id];
     }
 
-    static bool ShaderHasCompilationErrors(u32 const program, shader_type const type)
+    static bool ShaderHasCompilationErrors(u32 program, shader_type type)
     {
       i32 success{0};
       std::array<char, 512> log{'\0'};
@@ -482,7 +482,7 @@ namespace lain
       }
     }
 
-    static std::filesystem::path GetPathFromModelType(model_type const type)
+    static std::filesystem::path GetPathFromModelType(model_type type)
     {
       switch (type) {
       case model_type::ball:

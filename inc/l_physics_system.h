@@ -17,19 +17,19 @@ namespace lain
   {
     void Update();
 
-    void AddEntity(entity_id const id, physics_component&& p);
+    void AddEntity(entity_id id, physics_component&& p);
 
-    void SetEntity(entity_id const id, physics_component&& p);
+    void SetEntity(entity_id id, physics_component&& p);
 
     void RemoveAllEntities();
 
-    void RemoveEntity(entity_id const id);
+    void RemoveEntity(entity_id id);
 
-    void AddCollisionShapeForEntity(entity_id const id, aabb shape);
+    void AddCollisionShapeForEntity(entity_id id, aabb shape);
 
-    std::vector<aabb> const& GetCollisionShapes(entity_id const id);
+    std::vector<aabb> const& GetCollisionShapes(entity_id id);
 
     // Used for serialisation.
-    physics_component GetPhysicsComponent(entity_id const id);
+    physics_component GetPhysicsComponent(entity_id id);
   };
 };

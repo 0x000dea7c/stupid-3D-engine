@@ -18,15 +18,15 @@ namespace lain
   {
     void Update();
 
-    void AddEntity(entity_id const id, transform_component&& t);
+    void AddEntity(entity_id id, transform_component&& t);
 
-    void SetEntity(entity_id const id, transform_component&& t);
+    void SetEntity(entity_id id, transform_component&& t);
 
     // OPTIMISE: maybe returning a copy is expensive.
-    transform_component GetTransform(entity_id const id);
+    transform_component GetTransform(entity_id id);
 
     void RemoveAllEntities();
 
-    void RemoveEntity(entity_id const id);
+    void RemoveEntity(entity_id id);
   };
 };

@@ -2,12 +2,12 @@
 
 namespace lain
 {
-    namespace main_menu
-    {
-        void ProcessInput();
+  namespace main_menu
+  {
+    void ProcessInput();
 
-        void Update();
+    void Update();
 
-        void Render();
-    };
+    void Render();
+  };
 };

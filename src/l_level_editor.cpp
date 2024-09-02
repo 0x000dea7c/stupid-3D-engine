@@ -55,8 +55,8 @@ namespace lain
     static i32 GetSquaresToDraw();
     static void ProcessInputInEditMode();
     static void ProcessInputInMoveMode();
-    static void UpdateInMoveMode(f32 const deltaTime);
-    static void AddEntityToLevel(i32 const selection);
+    static void UpdateInMoveMode(f32 deltaTime);
+    static void AddEntityToLevel(i32 selection);
     static void UpdateCursorInEditMode();
     static void RemoveEntities();
     static void RemoveSelectedEntity();
@@ -278,7 +278,7 @@ namespace lain
       }
     }
 
-    static void UpdateInMoveMode(f32 const deltaTime)
+    static void UpdateInMoveMode(f32 deltaTime)
     {
       _camera.SetTargetPosition(deltaTime);
       _camera.Update(deltaTime);
@@ -296,7 +296,7 @@ namespace lain
       ImGui::End();
     }
 
-    static void AddEntityToLevel(i32 const selection)
+    static void AddEntityToLevel(i32 selection)
     {
       model_type type;
 

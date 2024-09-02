@@ -5,16 +5,16 @@ using namespace lain;
 
 int main()
 {
-    bool const fullscreen{true};
+  bool const fullscreen{true};
 
-    if (!application::Initialise(fullscreen)) {
-        application::Shutdown();
-        return EXIT_FAILURE;
-    }
-
-    application::Run();
-
+  if (!application::Initialise(fullscreen)) {
     application::Shutdown();
+    return EXIT_FAILURE;
+  }
 
-    return EXIT_SUCCESS;
+  application::Run();
+
+  application::Shutdown();
+
+  return EXIT_SUCCESS;
 }

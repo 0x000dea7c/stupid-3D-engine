@@ -21,7 +21,7 @@ namespace lain
       return id;
     }
 
-    void RemoveEntity(entity_id const id)
+    void RemoveEntity(entity_id id)
     {
       _entities.erase(_entities.begin() + id);
     }
@@ -36,7 +36,7 @@ namespace lain
       return _entities.size();
     }
 
-    bool IsDestroyed(entity_id const id)
+    bool IsDestroyed(entity_id id)
     {
       return _entities[id]._destroyed;
     }

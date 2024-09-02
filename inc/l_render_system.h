@@ -20,36 +20,35 @@ namespace lain
 
   namespace render_system
   {
-    void Initialise(f32 const width, f32 const height);
+    void Initialise(f32 width, f32 height);
 
-    void UseShader(u32 const id);
+    void UseShader(u32 id);
 
-    void SetUniformMat4(u32 const id, std::string const& uniname, glm::mat4 const& m);
+    void SetUniformMat4(u32 id, std::string const& uniname, glm::mat4 const& m);
 
-    void SetUniformVec2(u32 const id, std::string const& uniname, glm::vec2 const& value);
+    void SetUniformVec2(u32 id, std::string const& uniname, glm::vec2 const& value);
 
-    void SetUniformVec3(u32 const id, std::string const& uniname, glm::vec3 const& value);
+    void SetUniformVec3(u32 id, std::string const& uniname, glm::vec3 const& value);
 
-    void SetUniformVec4(u32 const id, std::string const& uniname, glm::vec4 const& value);
+    void SetUniformVec4(u32 id, std::string const& uniname, glm::vec4 const& value);
 
-    void SetUniformInt(u32 const id, std::string const& uniname, int const value);
+    void SetUniformInt(u32 id, std::string const& uniname, i32 value);
 
     void DrawEntities(camera3D const& camera);
 
-    void DrawLines(u32 const id, u32 const vao, u32 const count,
-		   glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
+    void DrawLines(u32 id, u32 vao, u32 count, glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
 
-    void DrawBoundingBox(u32 const id, u32 const vao, glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
+    void DrawBoundingBox(u32 id, u32 vao, glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
 
-    void DrawBoundingBoxWithoutModel(u32 const id, u32 const vao, glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
+    void DrawBoundingBoxWithoutModel(u32 id, u32 vao, glm::mat4 const& view, glm::vec4 const& colour = glm::vec4(1.f));
 
     glm::mat4 GetCurrentProjectionMatrix();
 
     void AddEntity(render_component&& r);
 
-    void SetEntity(entity_id const id, render_component&& r);
+    void SetEntity(entity_id id, render_component&& r);
 
-    void RemoveEntity(entity_id const id);
+    void RemoveEntity(entity_id id);
 
     void RemoveAllEntities();
   };

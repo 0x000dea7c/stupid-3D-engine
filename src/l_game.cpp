@@ -76,7 +76,7 @@ namespace lain
       }
     }
 
-    void Update(f32 const deltaTime)
+    void Update(f32 deltaTime)
     {
       switch (_state.top()) {
       case game_state::mainMenu:

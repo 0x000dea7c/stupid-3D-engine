@@ -14,7 +14,7 @@ namespace lain
 
     void ProcessInput();
 
-    void Update(f32 const deltaTime);
+    void Update(f32 deltaTime);
 
     void Render();
   };

@@ -11,7 +11,7 @@ namespace lain
   // -----------------------------------------------------------
   namespace application
   {
-    bool Initialise(bool const fullScreen);
+    bool Initialise(bool fullScreen);
 
     void ToggleFullScreen();
 

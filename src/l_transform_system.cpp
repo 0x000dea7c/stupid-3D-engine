@@ -20,7 +20,7 @@ namespace lain
       }
     }
 
-    void AddEntity(entity_id const id, transform_component&& t)
+    void AddEntity(entity_id id, transform_component&& t)
     {
       if (id < _entities.size()) {
 	_entities[id] = std::move(t);
@@ -29,12 +29,12 @@ namespace lain
       }
     }
 
-    void SetEntity(entity_id const id, transform_component&& t)
+    void SetEntity(entity_id id, transform_component&& t)
     {
       _entities[id] = std::move(t);
     }
 
-    transform_component GetTransform(entity_id const id)
+    transform_component GetTransform(entity_id id)
     {
       return _entities[id];
     }
@@ -44,7 +44,7 @@ namespace lain
       _entities.clear();
     }
 
-    void RemoveEntity(entity_id const id)
+    void RemoveEntity(entity_id id)
     {
       _entities.erase(_entities.begin() + id);
     }

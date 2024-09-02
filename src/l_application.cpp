@@ -34,10 +34,10 @@ namespace lain
 
     static f32 Time();
     static void InitialiseImGui();
-    static input_manager::key SDLKeyToEngine(i32 const key);
-    static input_manager::mouse_button SDLMouseButtonToEngine(i32 const mouseButton);
+    static input_manager::key SDLKeyToEngine(i32 key);
+    static input_manager::mouse_button SDLMouseButtonToEngine(i32 mouseButton);
 
-    bool Initialise(bool const fullScreen)
+    bool Initialise(bool fullScreen)
     {
       _isInFullScreen = fullScreen;
 
@@ -240,7 +240,7 @@ namespace lain
       ImGui_ImplOpenGL3_Init();
     }
 
-    static input_manager::key SDLKeyToEngine(i32 const key) {
+    static input_manager::key SDLKeyToEngine(i32 key) {
       switch (key) {
       case SDLK_w:
 	return input_manager::key::w;
@@ -269,7 +269,7 @@ namespace lain
       }
     }
 
-    static input_manager::mouse_button SDLMouseButtonToEngine(i32 const mouseButton)
+    static input_manager::mouse_button SDLMouseButtonToEngine(i32 mouseButton)
     {
       switch (mouseButton) {
       case SDL_BUTTON_LEFT:
