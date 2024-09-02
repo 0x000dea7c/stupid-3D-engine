@@ -1,15 +1,17 @@
 #pragma once
 
+#include "l_types.h"
+
 namespace lain
 {
-    namespace level_editor
-    {
-        void Initialise();
+  namespace level_editor
+  {
+    void Initialise();
 
-        void ProcessInput();
+    void ProcessInput();
 
-        void Update(float const deltaTime);
+    void Update(f32 const deltaTime);
 
-        void Render();
-    };
+    void Render();
+  };
 };

@@ -38,7 +38,7 @@
 - X Show ImGui menu to choose game options (temp)
 - X Options: Play, Editor, Quit
 
-*** TODO (1 week + research) Add model to the world, entity picking, entity transformations, AABBs
+*** DONE (1 week + research) Add model to the world, entity picking, entity transformations, AABBs
 
 - X Add left panel -> current position.
 - X Separate renderers at least by responsibility
@@ -87,9 +87,14 @@
 
 *** TODO (4+ hours + research) Save current scene or level and load it back
 
-- Serialize
-- Deserialize
+- X Show ImGui button to save current level
+- For serialising/deserialising, it's a good idea to use fixed types. Change int to i32, unsigned int to u32, float to f32, etc.
+  - X level editor
+  - X resource manager
+  - Everywhere!
 - Show ImGui list to show levels to load
+- Serialise
+- Deserialise
 - Adding rigid body somewhere???
 
 *** TODO Define start and end points in the created level

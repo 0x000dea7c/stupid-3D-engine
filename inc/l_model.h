@@ -5,18 +5,18 @@
 
 namespace lain
 {
-    // --------------------------------------
-    // Define posible models to load in here.
-    // --------------------------------------
-    enum class model_type
+  // --------------------------------------
+  // Define posible models to load in here.
+  // --------------------------------------
+  enum class model_type
     {
-        ball,
-        maze
+      ball,
+      maze
     };
 
-    struct model final
-    {
-        std::vector<mesh> _meshes;
-        std::string _directory;
-    };
+  struct model final
+  {
+    std::vector<mesh> _meshes;
+    std::string _directory;
+  };
 };

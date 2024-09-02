@@ -1,19 +1,21 @@
 #pragma once
 
+#include "l_types.h"
+
 namespace lain
 {
-    namespace game
-    {
-        void Initialise();
+  namespace game
+  {
+    void Initialise();
 
-        bool IsShuttingDown();
+    bool IsShuttingDown();
 
-        void ForceShutdown();
+    void ForceShutdown();
 
-        void ProcessInput();
+    void ProcessInput();
 
-        void Update(float const deltaTime);
+    void Update(f32 const deltaTime);
 
-        void Render();
-    };
+    void Render();
+  };
 };

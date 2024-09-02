@@ -2,8 +2,18 @@ cmake_minimum_required(VERSION 3.28)
 
 project(rolling_ball VERSION 0.1)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Directory for level saving.
+set(LEVELS_DIR "${PROJECT_SOURCE_DIR}/levels")
+
+# Create level's directory if it doesn't exist.
+add_custom_command(
+    OUTPUT ${LEVELS_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${LEVELS_DIR}
+    COMMENT "Creating levels directory"
+)
 
 include(FetchContent)
 
@@ -37,20 +47,10 @@ else()
   add_compile_options(-Wall -Wextra -pedantic -fno-exceptions -Wunused-result -msse4.1)
 endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 if(CMAKE_BUILD_TYPE MATCHES Debug)
     add_compile_options(-g)
 else()
     add_compile_options(-O2)
-endif()
-
-if (PROJECT_IS_TOP_LEVEL AND UNIX)
-    execute_process(
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-            ${CMAKE_BINARY_DIR}/compile_commands.json
-            ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-    )
 endif()
 
 add_subdirectory(deps/glad)
@@ -61,10 +61,13 @@ include_directories(deps/imgui)
 include_directories(deps/imgui/backends)
 include_directories(deps/stb)
 
+add_custom_target(create_levels_dir ALL DEPENDS ${LEVELS_DIR})
+
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB IMGUI_SOURCES "deps/imgui/*.cpp" "deps/imgui/*.h")
 
 # TODO: shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame shame
+# I'm stupid and I don't know a better way for now
 file(GLOB IMGUI_BACKEND_SOURCES "deps/imgui/backends/imgui_impl_sdl2.cpp" "deps/imgui/backends/imgui_impl_sdl2.h" "deps/imgui/backends/imgui_impl_opengl3.h" "deps/imgui/backends/imgui_impl_opengl3.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES} ${IMGUI_BACKEND_SOURCES})

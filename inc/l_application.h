@@ -2,25 +2,27 @@
 
 #include <string>
 
+#include "l_types.h"
+
 namespace lain
 {
-    // -----------------------------------------------------------
-    // Initialise every library you use: SDL2, OpenGL, ImGui, etc.
-    // -----------------------------------------------------------
-    namespace application
-    {
-        bool Initialise(bool const fullScreen);
+  // -----------------------------------------------------------
+  // Initialise every library you use: SDL2, OpenGL, ImGui, etc.
+  // -----------------------------------------------------------
+  namespace application
+  {
+    bool Initialise(bool const fullScreen);
 
-        void ToggleFullScreen();
+    void ToggleFullScreen();
 
-        void Shutdown();
+    void Shutdown();
 
-        void Run();
+    void Run();
 
-        float GetWindowWidth();
+    f32 GetWindowWidth();
 
-        float GetWindowHeight();
+    f32 GetWindowHeight();
 
-        void SetWindowTitle(std::string&& newTitle);
-    };
+    void SetWindowTitle(std::string&& newTitle);
+  };
 };
