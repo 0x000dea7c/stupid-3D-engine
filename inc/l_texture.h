@@ -2,19 +2,19 @@
 
 namespace lain
 {
-    struct texture final
+  struct texture final
+  {
+    texture(u32 id, i32 width, i32 height, i32 channels)
+      :   _id{id},
+	  _width{width},
+	  _height{height},
+	  _channels{channels}
     {
-        texture(unsigned int const id, int const width, int const height, int const channels)
-        :   _id{id},
-            _width{width},
-            _height{height},
-            _channels{channels}
-        {
-        }
+    }
 
-        unsigned int _id;
-        int _width;
-        int _height;
-        int _channels;
-    };
+    u32 _id;
+    i32 _width;
+    i32 _height;
+    i32 _channels;
+  };
 };

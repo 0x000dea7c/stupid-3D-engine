@@ -102,6 +102,8 @@
 *** DONE Use fixed types every fucking where!
 *** TODO Refactor level editor file because it's a mess
 *** DONE Consistent format style!
+*** TODO Create a level with a floor and the ball on top of it, implement ball movement + ball rotation
+
 *** TODO Define start and end points in the created level
 
 - The end point acts as a trigger, whenever the ball position is inside the bounding box of the end position, then game ended
